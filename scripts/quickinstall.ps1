@@ -24,11 +24,11 @@ if (-not $SkipPrereqs) {
 }
 
 Write-Section 'Quick install: stack install'
-$installArgs = @()
 if ($ProjectPath) {
-    $installArgs += @('-ProjectPath', $ProjectPath)
+    & (Join-Path $scriptRoot 'install.ps1') -ProjectPath $ProjectPath
+} else {
+    & (Join-Path $scriptRoot 'install.ps1')
 }
-& (Join-Path $scriptRoot 'install.ps1') @installArgs
 if ($LASTEXITCODE -ne 0) {
     throw 'install.ps1 failed'
 }
