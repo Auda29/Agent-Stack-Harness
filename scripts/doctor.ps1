@@ -30,6 +30,6 @@ if (Test-Path $multicaEnv) { Write-Good 'Multica .env exists' } else { Write-War
 if (Test-MulticaEnvComplete) { Write-Good 'Multica Resend settings appear filled' } else { Write-Warn 'Multica Resend settings incomplete' }
 
 Write-Section 'Docker containers'
-foreach ($c in @('multica-postgres','searxng')) {
+foreach ($c in @('postgres','searxng')) {
     if (Test-DockerServiceRunning $c) { Write-Good "$c running" } else { Write-Warn "$c not running" }
 }

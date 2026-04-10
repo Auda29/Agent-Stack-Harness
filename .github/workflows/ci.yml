@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  powershell-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem scripts -Recurse -Filter *.ps1
+          if (-not $files) { throw 'No PowerShell scripts found under scripts/' }
+
+          $hadErrors = $false
+          foreach ($f in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              Write-Host "Parse errors in $($f.FullName)" -ForegroundColor Red
+              $errors | ForEach-Object { Write-Host $_.Message -ForegroundColor Red }
+              $hadErrors = $true
+            }
+          }
+
+          if ($hadErrors) {
+            throw 'PowerShell parse check failed'
+          }
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path scripts -Recurse -Severity Error
+          if ($results) {
+            $results | Format-Table -AutoSize
+            throw 'PSScriptAnalyzer reported issues'
+          }
+
+      - name: Config smoke check
+        shell: pwsh
+        run: |
+          $config = Get-Content config/stack.json -Raw | ConvertFrom-Json
+
+          foreach ($key in @('postgres','searxng','multicaBackend','multicaFrontend')) {
+            if (-not $config.ports.$key) {
+              throw "Missing config.ports.$key"
+            }
+          }
+
+          foreach ($key in @('searxng','multicaFrontend','multicaBackendHealth','multicaWebSocket')) {
+            if (-not $config.urls.$key) {
+              throw "Missing config.urls.$key"
+            }
+          }
+
+          if (-not $config.dockerProjectName) {
+            throw 'Missing dockerProjectName'
+          }

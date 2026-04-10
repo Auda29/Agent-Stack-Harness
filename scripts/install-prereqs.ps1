@@ -5,16 +5,16 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $packages = @(
-    @{ Id = 'Git.Git'; Name = 'Git'; Source = 'winget' },
-    @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop'; Source = 'winget' },
-    @{ Id = 'Python.Python.3.11'; Name = 'Python 3.11'; Source = 'winget' },
-    @{ Id = 'OpenJS.NodeJS'; Name = 'Node.js'; Source = 'winget' },
-    @{ Id = 'pnpm.pnpm'; Name = 'pnpm'; Source = 'winget' },
-    @{ Id = 'GoLang.Go'; Name = 'Go'; Source = 'winget' }
+    @{ Id = 'Git.Git'; Name = 'Git'; Source = 'winget'; Command = 'git' },
+    @{ Id = 'Docker.DockerDesktop'; Name = 'Docker Desktop'; Source = 'winget'; Command = 'docker' },
+    @{ Id = 'Python.Python.3.11'; Name = 'Python 3.11'; Source = 'winget'; Command = 'python' },
+    @{ Id = 'OpenJS.NodeJS'; Name = 'Node.js'; Source = 'winget'; Command = 'node' },
+    @{ Id = 'pnpm.pnpm'; Name = 'pnpm'; Source = 'winget'; Command = 'pnpm' },
+    @{ Id = 'GoLang.Go'; Name = 'Go'; Source = 'winget'; Command = 'go' }
 )
 
 $optionalPackages = @(
-    @{ Id = 'Anthropic.Claude'; Name = 'Claude'; Source = 'winget' }
+    @{ Id = 'Anthropic.Claude'; Name = 'Claude'; Source = 'winget'; Command = 'claude' }
 )
 
 function Write-Section([string]$Text) {
@@ -37,7 +37,27 @@ function Test-CommandExists([string]$Name) {
     $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Test-WingetPackageInstalled([hashtable]$Package) {
+    try {
+        $output = & winget list --id $Package.Id --exact --accept-source-agreements 2>$null
+        return ($LASTEXITCODE -eq 0 -and (($output | Out-String) -match [regex]::Escape($Package.Id)))
+    }
+    catch {
+        return $false
+    }
+}
+
 function Install-WingetPackage([hashtable]$Package) {
+    if ($Package.Command -and (Test-CommandExists $Package.Command)) {
+        Write-Good "$($Package.Name) already available in PATH"
+        return
+    }
+
+    if (Test-WingetPackageInstalled $Package) {
+        Write-Info "$($Package.Name) is already installed via winget"
+        return
+    }
+
     Write-Info "Installing $($Package.Name) via winget ($($Package.Id))"
     & winget install --id $Package.Id --exact --accept-package-agreements --accept-source-agreements --source $Package.Source
     if ($LASTEXITCODE -ne 0) {
@@ -59,6 +79,8 @@ foreach ($package in $packages) {
 Write-Section 'Post-install npm globals'
 if (-not (Test-CommandExists 'npm')) {
     Write-Warn 'npm not found after Node.js install. Open a new shell and run this script again if needed.'
+} elseif (Test-CommandExists 'codex') {
+    Write-Good 'Codex CLI already available in PATH'
 } else {
     Write-Info 'Installing Codex CLI globally via npm'
     & npm install -g @openai/codex

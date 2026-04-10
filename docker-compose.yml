@@ -1,7 +1,6 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-    container_name: multica-postgres
     environment:
       POSTGRES_DB: multica
       POSTGRES_USER: multica
@@ -18,7 +17,6 @@ services:
 
   searxng:
     image: docker.io/searxng/searxng:latest
-    container_name: searxng
     ports:
       - "${SEARXNG_PORT:-8888}:8080"
     volumes:

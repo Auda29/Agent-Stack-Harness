@@ -46,10 +46,15 @@ function Stop-Infrastructure {
     finally { Pop-Location }
 }
 
-function Test-DockerServiceRunning([string]$ContainerName) {
+function Test-DockerServiceRunning([string]$ServiceName) {
     try {
-        $id = docker ps --filter "name=$ContainerName" --format '{{.Names}}'
-        return ($id -match [regex]::Escape($ContainerName))
+        $config = Get-StackConfig
+        $project = $config.dockerProjectName
+        $names = docker ps `
+            --filter "label=com.docker.compose.project=$project" `
+            --filter "label=com.docker.compose.service=$ServiceName" `
+            --format '{{.Names}}'
+        return (-not [string]::IsNullOrWhiteSpace(($names | Out-String).Trim()))
     }
     catch {
         return $false

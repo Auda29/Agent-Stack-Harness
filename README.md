@@ -50,7 +50,33 @@ A single `requirements.txt` is not enough for this repo because the prerequisite
 - Claude Code
 - Codex CLI
 
-So this repo now uses a small Windows bootstrap script (`scripts/install-prereqs.ps1`) instead of pretending everything can be expressed as Python dependencies.
+So this repo uses a Windows bootstrap script (`scripts/install-prereqs.ps1`) instead of pretending everything can be expressed as Python dependencies.
+
+## Configuration
+
+Main config lives in `config/stack.json`.
+
+That file is the source of truth for:
+
+- Docker project name
+- published infrastructure ports
+- saved project path
+- local URLs used by the harness
+- cloned repo URLs
+
+Current defaults:
+
+- Postgres: `5432`
+- SearXNG: `8888`
+- Multica backend: `8080`
+- Multica frontend: `3000`
+
+If you change ports in `config/stack.json`, the harness will sync them into:
+
+- Docker Compose port bindings
+- generated root `.env` for Compose
+- `repos/multica/.env`
+- Multica runtime environment variables used by `start.ps1`
 
 ## Recommended order
 
@@ -80,8 +106,9 @@ Optional:
 ```
 
 Notes:
-- `Claude Code` may still need manual installation depending on your machine / winget availability.
-- You may need to open a **new PowerShell window** after installation so PATH updates are visible.
+- the script is safe to rerun; it skips tools that are already installed or already on `PATH`
+- `Claude Code` may still need manual installation depending on your machine / winget availability
+- you may need to open a **new PowerShell window** after installation so PATH updates are visible
 
 If you prefer, you can still install everything manually.
 
@@ -95,6 +122,15 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```
 
 `-ProjectPath` is optional but useful.
+
+Install does all of this:
+
+- prepares local folders
+- clones or updates the dependent repos
+- creates or updates `repos/multica/.env`
+- starts Docker infrastructure
+- installs Python/Node dependencies
+- attempts to build the Multica backend binary
 
 ## 3) Run onboarding
 
@@ -122,19 +158,35 @@ Then complete the manual login/config steps.
 .\scripts\stop.ps1
 ```
 
-## Expected URLs
+## URLs
 
-- SearXNG: http://localhost:8888
-- Multica frontend: http://localhost:3000
-- Multica backend health: http://localhost:8080/health
+The actual URLs come from `config/stack.json`.
+
+Default values are:
+
+- SearXNG: `http://localhost:8888`
+- Multica frontend: `http://localhost:3000`
+- Multica backend health: `http://localhost:8080/health`
 
 ## Notes about Multica
 
 This harness creates `repos/multica/.env` from `config/multica.env.template`.
+
+Managed values are synced automatically by the harness:
+
+- `DATABASE_URL`
+- `FRONTEND_ORIGIN`
+- `CORS_ALLOWED_ORIGINS`
+- `PORT`
+- `FRONTEND_PORT`
+
 You still need to fill:
 
+- `JWT_SECRET`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
+
+The install flow attempts to build the backend automatically, but depending on upstream Multica changes you may still need to build or adjust it manually on Windows.
 
 ## Notes about MemPalace
 
@@ -153,10 +205,31 @@ Harness-managed process logs are written to:
 - `data/logs/*.out.log`
 - `data/logs/*.err.log`
 
+PID metadata for managed local processes is written to:
+
+- `data/pids/*.pid`
+
+## Multi-clone note
+
+Docker service detection now uses the configured Compose project name from `config/stack.json`.
+
+To run multiple clones of this harness on the same machine more safely:
+
+- give each clone a different `dockerProjectName`
+- give each clone different published ports in `config/stack.json`
+
+## CI
+
+This repo includes a small GitHub Actions workflow that runs:
+
+- PowerShell parse checks for all `scripts/**/*.ps1`
+- `PSScriptAnalyzer` error checks
+- a small config smoke check
+
 ## Suggested next improvement
 
-Once the stack works on your machine, the next sensible step is to add:
+Once the stack works on your machine, sensible next steps are:
 
-- a small **state file** for login/config completion
-- better **process supervision**
-- a **repo launcher** that opens your saved project path directly in a terminal/editor
+- stronger process supervision / restart behavior
+- deeper startup readiness checks
+- a repo launcher that opens your saved project path directly in a terminal/editor
