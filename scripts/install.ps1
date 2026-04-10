@@ -22,8 +22,15 @@ Invoke-Step 'Check prerequisites' {
     foreach ($cmd in @('git','python','node','docker')) {
         if (Test-CommandExists $cmd) { Write-Good "$cmd found" } else { Write-Warn "$cmd not found" }
     }
-    if (-not (Test-CommandExists 'pnpm')) { Write-Warn 'pnpm not found; Multica frontend install will fail until installed' }
-    if (-not (Test-CommandExists 'go')) { Write-Warn 'go not found; Multica backend build may fail until installed' }
+    if (-not (Resolve-ExecutablePath 'pnpm')) { Write-Warn 'pnpm not found; Multica frontend install will fail until installed' }
+    $goPath = Resolve-ExecutablePath 'go'
+    if (-not $goPath) {
+        Write-Warn 'go not found; Multica backend build may fail until installed'
+    } elseif (-not (Test-CommandExists 'go')) {
+        Write-Warn "go is not visible to Get-Command, but a fallback path was found: $goPath"
+    } else {
+        Write-Good "go found ($goPath)"
+    }
 }
 
 Invoke-Step 'Clone or update repositories' {

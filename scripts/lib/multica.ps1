@@ -41,12 +41,15 @@ function Build-Multica {
 
     Push-Location $repo
     try {
-        if (Test-CommandExists 'make') {
-            & make build
+        $makeExe = Resolve-ExecutablePath 'make'
+        $goExe = Resolve-ExecutablePath 'go'
+
+        if ($makeExe) {
+            & $makeExe build
             if ($LASTEXITCODE -ne 0) { throw 'make build failed' }
         }
-        elseif (Test-CommandExists 'go') {
-            Write-Warn 'make not found; attempting Go build fallback for Multica backend'
+        elseif ($goExe) {
+            Write-Warn "make not found; attempting Go build fallback for Multica backend using $goExe"
             Ensure-Dir (Join-Path $repo 'server/bin')
 
             $candidates = @(
@@ -57,7 +60,7 @@ function Build-Multica {
 
             $built = $false
             foreach ($candidate in $candidates) {
-                & go build -o $serverExe $candidate
+                & $goExe build -o $serverExe $candidate
                 if ($LASTEXITCODE -eq 0 -and (Test-Path $serverExe)) {
                     $built = $true
                     break

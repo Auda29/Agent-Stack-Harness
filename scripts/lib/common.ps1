@@ -194,6 +194,44 @@ function Get-CommandPathHint([string]$Name) {
     }
 }
 
+function Resolve-ExecutablePath([string]$Name) {
+    $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) { return $cmd.Source }
+
+    $hint = Get-CommandPathHint $Name
+    if ($hint) {
+        $first = ($hint -split ';')[0].Trim()
+        if ($first) { return $first }
+    }
+
+    $candidates = @()
+    switch ($Name.ToLowerInvariant()) {
+        'go' {
+            if ($env:GOROOT) {
+                $candidates += (Join-Path $env:GOROOT 'bin/go.exe')
+            }
+            $candidates += @(
+                'C:\Program Files\Go\bin\go.exe',
+                'C:\Program Files (x86)\Go\bin\go.exe'
+            )
+        }
+        'make' {
+            $candidates += @(
+                'C:\Program Files\Git\usr\bin\make.exe',
+                'C:\msys64\usr\bin\make.exe'
+            )
+        }
+    }
+
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path $candidate)) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 function Ensure-Dir([string]$Path) {
     if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path | Out-Null }
 }
