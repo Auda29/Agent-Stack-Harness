@@ -70,6 +70,8 @@ Current defaults:
 - Multica backend: `8080`
 - Multica frontend: `3000`
 
+Security note: the Docker Postgres service uses simple local development credentials (`multica` / `multica`). This harness is intended for localhost development only and is not production-ready as-is.
+
 If you change ports in `config/stack.json`, the harness will sync them into:
 
 - Docker Compose port bindings

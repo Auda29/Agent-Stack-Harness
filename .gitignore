@@ -1,0 +1,15 @@
+# Generated local environment
+.env
+
+# Harness runtime state
+data/
+repos/
+
+# Logs / pids / wrappers
+*.log
+*.pid
+
+# Temp test folders
+tmp-
+.tmp/
+tmp*/
