@@ -27,7 +27,8 @@ if (Test-Path $multicaEnv) {
 }
 
 if (-not (Test-MulticaEnvComplete)) {
-    Write-Warn 'Multica .env is incomplete. Fill the Resend settings before login.'
+    Write-Warn 'Multica .env is incomplete. Without RESEND_API_KEY, login codes are not emailed; they are printed to the Multica backend log instead.'
+    Write-Info "Check backend logs for a dev login code in:`n$(Join-Path (Get-HarnessRoot) 'data/logs')"
 } else {
     Write-Good 'Multica .env looks complete'
 }

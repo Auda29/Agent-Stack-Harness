@@ -262,6 +262,11 @@ You still need to fill:
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 
+For local development, `RESEND_API_KEY` is optional. If it is left empty, Multica does not send a real email; it prints the verification code to the backend log instead. Check:
+
+- `data/logs/multica-backend*.out.log`
+- `data/logs/multica-backend*.err.log`
+
 The install flow attempts to build the backend automatically, but depending on upstream Multica changes you may still need to build or adjust it manually on Windows.
 
 ## Notes about SearXNG
