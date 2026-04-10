@@ -30,6 +30,65 @@ function Get-MulticaRuntimeSettings {
     }
 }
 
+function Ensure-MulticaHarnessPatches {
+    $repo = Get-MulticaRepoPath
+    if (-not (Test-Path $repo)) { throw 'Multica repo missing' }
+
+    $cmdDir = Join-Path $repo 'server/cmd/multica'
+    Ensure-Dir $cmdDir
+
+    $unixPath = Join-Path $cmdDir 'sysproc_unix.go'
+    $windowsPath = Join-Path $cmdDir 'sysproc_windows.go'
+    $daemonPath = Join-Path $cmdDir 'cmd_daemon.go'
+    $authPath = Join-Path $cmdDir 'cmd_auth.go'
+
+    $unixContent = @'
+//go:build !windows
+
+package main
+
+import (
+    "os/exec"
+    "syscall"
+)
+
+func setBackgroundSysProcAttr(cmd *exec.Cmd) {
+    cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+}
+'@
+
+    $windowsContent = @'
+//go:build windows
+
+package main
+
+import "os/exec"
+
+func setBackgroundSysProcAttr(cmd *exec.Cmd) {
+    // No special SysProcAttr is required here for the Windows background daemon path.
+}
+'@
+
+    Set-Content -Path $unixPath -Value $unixContent -Encoding UTF8
+    Set-Content -Path $windowsPath -Value $windowsContent -Encoding UTF8
+
+    if (Test-Path $daemonPath) {
+        $daemonContent = Get-Content $daemonPath -Raw
+        $updatedDaemonContent = $daemonContent.Replace("child.SysProcAttr = &syscall.SysProcAttr{Setsid: true}", 'setBackgroundSysProcAttr(child)')
+        if ($updatedDaemonContent -ne $daemonContent) {
+            Set-Content -Path $daemonPath -Value $updatedDaemonContent -Encoding UTF8
+        }
+    }
+
+    if (Test-Path $authPath) {
+        $authContent = Get-Content $authPath -Raw
+        $updatedAuthContent = $authContent.Replace("`tcase \"windows\":`r`n`t`tcmd = \"cmd\"`r`n`t`targs = []string{\"/c\", \"start\", url}", "`tcase \"windows\":`r`n`t`tcmd = \"rundll32\"`r`n`t`targs = []string{\"url.dll,FileProtocolHandler\", url}")
+        if ($updatedAuthContent -ne $authContent) {
+            Set-Content -Path $authPath -Value $updatedAuthContent -Encoding UTF8
+        }
+    }
+}
+
 function Install-MulticaDependencies {
     $repo = Get-MulticaRepoPath
     if (-not (Test-Path $repo)) { throw 'Multica repo missing' }
@@ -43,6 +102,8 @@ function Install-MulticaDependencies {
 }
 
 function Build-Multica {
+    Ensure-MulticaHarnessPatches
+
     $repo = Get-MulticaRepoPath
     $serverExe = Get-MulticaBackendBinaryPath
     $migrateExe = Get-MulticaMigrateBinaryPath
