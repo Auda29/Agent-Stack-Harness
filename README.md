@@ -138,6 +138,7 @@ Install does all of this:
 - starts Docker infrastructure
 - installs Python/Node dependencies
 - attempts to build the Multica backend binary
+- if `-ProjectPath` is provided, bootstraps an `AGENTS.md` into that project repo
 
 ## 3) Run onboarding
 
@@ -146,6 +147,8 @@ Install does all of this:
 ```
 
 Then complete the manual login/config steps.
+
+If a project path was saved, onboarding also makes sure a starter `AGENTS.md` exists in that project.
 
 ## 4) Start the stack
 
@@ -191,6 +194,8 @@ Then either:
 - or configure provider API keys in your environment
 
 Pi also supports RPC mode and an SDK, but this harness currently uses pi simply as the user-facing coding-agent CLI.
+
+Pi automatically reads `AGENTS.md` files from the current directory and parent directories. This harness uses that behavior by bootstrapping a starter `AGENTS.md` into your saved project path.
 
 The prereq installer also installs these pi packages by default:
 

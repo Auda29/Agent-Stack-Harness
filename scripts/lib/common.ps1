@@ -20,6 +20,36 @@ function Save-StackConfig([object]$Config) {
     $Config | ConvertTo-Json -Depth 8 | Set-Content -Path $path -Encoding UTF8
 }
 
+function Get-ProjectAgentsTemplatePath {
+    Join-Path (Get-HarnessRoot) 'config/AGENTS.md.template'
+}
+
+function Initialize-ProjectAgentsMd([string]$ProjectPath, [switch]$Force) {
+    if (-not $ProjectPath) { throw 'ProjectPath is required' }
+
+    $config = Get-StackConfig
+    $templatePath = Get-ProjectAgentsTemplatePath
+    if (-not (Test-Path $templatePath)) { throw "AGENTS template not found: $templatePath" }
+
+    $resolvedProjectPath = (Resolve-Path $ProjectPath).Path
+    $target = Join-Path $resolvedProjectPath 'AGENTS.md'
+    if ((Test-Path $target) -and -not $Force) {
+        Write-Info "AGENTS.md already exists: $target"
+        return
+    }
+
+    $template = Get-Content $templatePath -Raw
+    $content = $template.Replace('__PROJECT_PATH__', $resolvedProjectPath)
+    $content = $content.Replace('__HARNESS_ROOT__', (Get-HarnessRoot))
+    $content = $content.Replace('__SEARXNG_URL__', $config.urls.searxng)
+    $content = $content.Replace('__MULTICA_FRONTEND_URL__', $config.urls.multicaFrontend)
+    $content = $content.Replace('__MULTICA_BACKEND_HEALTH_URL__', $config.urls.multicaBackendHealth)
+    $content = $content.Replace('__MULTICA_WS_URL__', $config.urls.multicaWebSocket)
+
+    Set-Content -Path $target -Value $content -Encoding UTF8
+    Write-Good "Wrote AGENTS.md: $target"
+}
+
 function Write-Section([string]$Text) {
     Write-Host "`n=== $Text ===" -ForegroundColor Cyan
 }

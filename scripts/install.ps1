@@ -77,6 +77,10 @@ if ($ProjectPath) {
         Save-StackConfig $config
         Write-Good "Saved projectPath: $resolved"
     }
+
+    Invoke-Step 'Bootstrap project AGENTS.md' {
+        Initialize-ProjectAgentsMd -ProjectPath $config.projectPath
+    }
 }
 
 Write-Host "`nInstall phase completed. Run onboarding.ps1 next." -ForegroundColor Cyan

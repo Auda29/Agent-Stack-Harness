@@ -1,0 +1,105 @@
+# Project Agent Guide
+
+This file was bootstrapped by the Agent Stack Harness. Adjust it freely for your project.
+
+## Purpose
+
+You are operating inside the project at:
+
+- `__PROJECT_PATH__`
+
+This project is expected to work with a local Windows hybrid agent stack managed by the harness at:
+
+- `__HARNESS_ROOT__`
+
+## Primary agent
+
+Use `pi` as the default coding agent CLI.
+
+Pi automatically reads this `AGENTS.md`. Prefer following these instructions over ad-hoc behavior.
+
+## Preferred workflow
+
+When the user asks you to work on this project:
+
+1. Assume the local harness is the preferred entrypoint for stack setup and health checks.
+2. Prefer existing harness scripts over inventing new startup commands.
+3. Prefer reading config and script files before changing behavior.
+4. Treat this file as project-specific guidance and adapt to user edits here.
+
+## Preferred commands
+
+For stack lifecycle, prefer these commands from the harness repo:
+
+- `scripts/install-prereqs.ps1`
+- `scripts/install.ps1 -ProjectPath "__PROJECT_PATH__"`
+- `scripts/onboarding.ps1`
+- `scripts/start.ps1`
+- `scripts/doctor.ps1`
+- `scripts/stop.ps1`
+
+## Stack services
+
+Default harness-managed endpoints:
+
+- SearXNG: `__SEARXNG_URL__`
+- Multica frontend: `__MULTICA_FRONTEND_URL__`
+- Multica backend health: `__MULTICA_BACKEND_HEALTH_URL__`
+- Multica websocket: `__MULTICA_WS_URL__`
+
+## How to use the stack
+
+### Pi packages
+
+The harness installs these default pi packages:
+
+- `pi-subagents`
+- `pi-mcp-adapter`
+- `pi-lens`
+
+Use them when appropriate, but do not assume they replace project-specific instructions.
+
+### SearXNG
+
+SearXNG is available as a local service for search, but it is not automatically a native pi tool unless explicitly integrated. If you need it:
+
+- prefer project instructions or available pi tools/extensions first
+- otherwise use the configured local URL carefully
+
+### Multica
+
+Multica is part of the local stack and may expose frontend/backend services. Before making assumptions:
+
+- inspect the harness config and scripts
+- check health endpoints before relying on it
+- prefer existing environment/config files over hardcoded values
+
+### agentchattr and MemPalace
+
+These are local tools managed by the harness. Do not assume a direct pi tool integration exists unless the project adds one.
+
+## Editing and automation rules
+
+- Prefer small, targeted edits.
+- Reuse existing scripts and config patterns.
+- Do not hardcode ports or URLs when `config/stack.json` already defines them.
+- If the stack is unhealthy, diagnose with the harness scripts before rewriting workflow logic.
+- If `AGENTS.md` and repository docs disagree, ask or follow the most local project-specific instruction.
+
+## First checks when starting work
+
+1. Read this file.
+2. Read the project's README and any local docs.
+3. If the task depends on the stack, inspect `config/stack.json` in the harness repo.
+4. If needed, run `scripts/doctor.ps1` from the harness repo.
+
+## Customization
+
+The project owner is expected to edit this file over time.
+
+Good things to add later:
+
+- repo-specific coding conventions
+- preferred test commands
+- deployment notes
+- explicit rules for when to use subagents, MCP, or search
