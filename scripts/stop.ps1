@@ -7,6 +7,10 @@ Invoke-Step 'Stop local Multica processes' {
     Stop-MulticaProcesses
 }
 
+Invoke-Step 'Stop Multica daemon' {
+    Stop-MulticaDaemon
+}
+
 Invoke-Step 'Stop agentchattr' {
     Stop-Agentchattr
 }

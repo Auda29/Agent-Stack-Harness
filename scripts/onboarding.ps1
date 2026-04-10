@@ -40,3 +40,4 @@ Write-Host '  3) Restart pi after package/config changes so pi-searxng and pi-mc
 Write-Host '  4) Verify Multica build succeeded during install; rebuild manually only if needed' -ForegroundColor White
 Write-Host '  5) Review and customize the generated AGENTS.md and .pi config files in your project repo if needed' -ForegroundColor White
 Write-Host '  6) Then run start.ps1' -ForegroundColor White
+Write-Host '  7) Multica runtimes appear only after the Multica daemon is running; if none appear, check whether `multica daemon start` succeeded on your machine' -ForegroundColor White

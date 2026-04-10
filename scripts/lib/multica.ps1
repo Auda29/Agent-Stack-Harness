@@ -11,6 +11,10 @@ function Get-MulticaMigrateBinaryPath {
     Join-Path (Get-MulticaRepoPath) 'server/bin/migrate.exe'
 }
 
+function Get-MulticaCliBinaryPath {
+    Join-Path (Get-MulticaRepoPath) 'server/bin/multica.exe'
+}
+
 function Get-MulticaServerPath {
     Join-Path (Get-MulticaRepoPath) 'server'
 }
@@ -42,9 +46,14 @@ function Build-Multica {
     $repo = Get-MulticaRepoPath
     $serverExe = Get-MulticaBackendBinaryPath
     $migrateExe = Get-MulticaMigrateBinaryPath
+    $cliExe = Get-MulticaCliBinaryPath
 
     if ((Test-Path $serverExe) -and (Test-Path $migrateExe)) {
-        Write-Info "Multica backend binaries already exist: $serverExe ; $migrateExe"
+        if (Test-Path $cliExe) {
+            Write-Info "Multica binaries already exist: $serverExe ; $migrateExe ; $cliExe"
+        } else {
+            Write-Info "Multica backend binaries already exist: $serverExe ; $migrateExe"
+        }
         return
     }
 
@@ -77,6 +86,11 @@ function Build-Multica {
                 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $migrateExe)) {
                     throw 'automatic Go build fallback failed for migrate'
                 }
+
+                & $goExe build -o $cliExe ./cmd/multica
+                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $cliExe)) {
+                    Write-Warn 'automatic Go build fallback failed for multica cli; Multica daemon integration may be unavailable on this platform'
+                }
             }
             finally { Pop-Location }
         }
@@ -91,6 +105,9 @@ function Build-Multica {
     }
     if (-not (Test-Path $migrateExe)) {
         throw "Multica migrate binary still missing after build attempt: $migrateExe"
+    }
+    if (-not (Test-Path $cliExe)) {
+        Write-Warn "Multica CLI binary is still missing after build attempt: $cliExe"
     }
 }
 
@@ -171,6 +188,90 @@ function Start-MulticaFrontend {
         NEXT_PUBLIC_WS_URL = $runtime.WebSocketUrl
     }
     Start-BackgroundProcess -Name 'multica-frontend' -FilePath 'pnpm.cmd' -Arguments @('exec', 'next', 'dev', '--port', $envMap.FRONTEND_PORT) -WorkingDirectory $webPath -Environment $envMap | Out-Null
+}
+
+function Test-MulticaCliAuthenticated {
+    $configPath = Join-Path $HOME '.multica/config.json'
+    if (-not (Test-Path $configPath)) { return $false }
+
+    try {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        return (-not [string]::IsNullOrWhiteSpace([string]$cfg.Token))
+    }
+    catch {
+        return $false
+    }
+}
+
+function Start-MulticaDaemon {
+    $cliExe = Get-MulticaCliBinaryPath
+    if (-not (Test-Path $cliExe)) {
+        Write-Warn 'Multica CLI binary missing; attempting build now'
+        try {
+            Build-Multica
+        }
+        catch {
+            Write-Warn "Multica CLI build attempt failed while preparing daemon start: $($_.Exception.Message)"
+        }
+    }
+    if (-not (Test-Path $cliExe)) {
+        Write-Warn "Multica CLI binary not found: $cliExe`nSkipping daemon start. This is likely an upstream Windows CLI/daemon build limitation, not a stack startup failure."
+        return
+    }
+
+    if (-not (Test-MulticaCliAuthenticated)) {
+        Write-Warn 'Multica CLI is not logged in yet. Skipping daemon start. Run `multica login` after logging into the web app, then rerun start.ps1.'
+        return
+    }
+
+    $runtime = Get-MulticaRuntimeSettings
+    $output = & $cliExe config set server-url $runtime.BackendUrl 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Could not update Multica CLI server-url automatically: $((($output | ForEach-Object { [string]$_ }) -join ' ').Trim())"
+    }
+
+    $output = & $cliExe config set app-url $runtime.FrontendUrl 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Could not update Multica CLI app-url automatically: $((($output | ForEach-Object { [string]$_ }) -join ' ').Trim())"
+    }
+
+    $output = & $cliExe daemon start 2>&1
+    $text = (($output | ForEach-Object { [string]$_ }) -join "`n").Trim()
+    if ($LASTEXITCODE -ne 0) {
+        if ($text -match 'already running') {
+            Write-Info "Multica daemon already running`n$text"
+            return
+        }
+        Write-Warn "Multica daemon did not start cleanly. Run `multica daemon logs` or `multica daemon status` for details.`n$text"
+        return
+    }
+
+    if ($text) {
+        Write-Good $text
+    } else {
+        Write-Good 'Multica daemon start command completed'
+    }
+}
+
+function Stop-MulticaDaemon {
+    $cliExe = Get-MulticaCliBinaryPath
+    if (-not (Test-Path $cliExe)) {
+        Write-Info 'Multica CLI binary not present; daemon stop skipped'
+        return
+    }
+
+    $output = & $cliExe daemon stop 2>&1
+    $text = (($output | ForEach-Object { [string]$_ }) -join "`n").Trim()
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Multica daemon stop reported an issue.`n$text"
+        return
+    }
+
+    if ($text) {
+        Write-Good $text
+    } else {
+        Write-Good 'Multica daemon stop command completed'
+    }
 }
 
 function Stop-MulticaProcesses {

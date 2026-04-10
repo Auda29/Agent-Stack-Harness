@@ -21,6 +21,10 @@ Invoke-Step 'Start agentchattr' {
     Start-Agentchattr
 }
 
+Invoke-Step 'Start Multica daemon' {
+    Start-MulticaDaemon
+}
+
 Write-Section 'Open URLs'
 Start-Process $config.urls.multicaFrontend
 Write-Good 'Opened Multica frontend in browser'

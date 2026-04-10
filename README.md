@@ -54,8 +54,8 @@ It gives you seven scripts:
 - `scripts/install-prereqs.ps1` — installs Windows prerequisites via `winget`
 - `scripts/install.ps1` — first-time setup
 - `scripts/onboarding.ps1` — guided manual steps
-- `scripts/start.ps1` — starts the daily stack
-- `scripts/stop.ps1` — stops harness-managed services
+- `scripts/start.ps1` — starts the daily stack, including an attempt to start the local Multica daemon if the CLI is logged in
+- `scripts/stop.ps1` — stops harness-managed services and the local Multica daemon
 - `scripts/doctor.ps1` — diagnostics
 
 These scripts are for stack lifecycle and bootstrap. They are not intended to be the primary runtime API for every stack component.
@@ -195,6 +195,8 @@ If a project path was saved, onboarding also refreshes the starter `AGENTS.md`, 
 ```powershell
 .\scripts\start.ps1
 ```
+
+If you have already logged into the Multica CLI, `start.ps1` also attempts to start the local Multica daemon so your runtimes appear in the Multica UI. If the CLI is not logged in yet, the harness prints a warning and skips daemon startup.
 
 ## 5) Diagnose problems
 
