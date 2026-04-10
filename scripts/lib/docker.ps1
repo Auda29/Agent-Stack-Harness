@@ -80,6 +80,11 @@ function Start-Infrastructure {
         Assert-DockerCommandSucceeded $result 'docker compose up failed'
     }
     finally { Pop-Location }
+
+    $config = Get-StackConfig
+    if (-not (Wait-TcpPort '127.0.0.1' $config.ports.postgres 30 500)) {
+        throw "Postgres did not become ready on port $($config.ports.postgres) after docker compose up"
+    }
 }
 
 function Stop-Infrastructure {

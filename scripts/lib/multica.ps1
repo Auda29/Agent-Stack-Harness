@@ -7,6 +7,10 @@ function Get-MulticaBackendBinaryPath {
     Join-Path (Get-MulticaRepoPath) 'server/bin/server.exe'
 }
 
+function Get-MulticaMigrateBinaryPath {
+    Join-Path (Get-MulticaRepoPath) 'server/bin/migrate.exe'
+}
+
 function Get-MulticaServerPath {
     Join-Path (Get-MulticaRepoPath) 'server'
 }
@@ -37,9 +41,10 @@ function Install-MulticaDependencies {
 function Build-Multica {
     $repo = Get-MulticaRepoPath
     $serverExe = Get-MulticaBackendBinaryPath
+    $migrateExe = Get-MulticaMigrateBinaryPath
 
-    if (Test-Path $serverExe) {
-        Write-Info "Multica backend binary already exists: $serverExe"
+    if ((Test-Path $serverExe) -and (Test-Path $migrateExe)) {
+        Write-Info "Multica backend binaries already exist: $serverExe ; $migrateExe"
         return
     }
 
@@ -65,7 +70,12 @@ function Build-Multica {
             try {
                 & $goExe build -o $serverExe ./cmd/server
                 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $serverExe)) {
-                    throw 'automatic Go build fallback failed'
+                    throw 'automatic Go build fallback failed for server'
+                }
+
+                & $goExe build -o $migrateExe ./cmd/migrate
+                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $migrateExe)) {
+                    throw 'automatic Go build fallback failed for migrate'
                 }
             }
             finally { Pop-Location }
@@ -79,6 +89,53 @@ function Build-Multica {
     if (-not (Test-Path $serverExe)) {
         throw "Multica backend binary still missing after build attempt: $serverExe"
     }
+    if (-not (Test-Path $migrateExe)) {
+        throw "Multica migrate binary still missing after build attempt: $migrateExe"
+    }
+}
+
+function Invoke-MulticaMigrations {
+    $repo = Get-MulticaRepoPath
+    $serverPath = Get-MulticaServerPath
+    $migrateExe = Get-MulticaMigrateBinaryPath
+    $runtime = Get-MulticaRuntimeSettings
+    $config = Get-StackConfig
+
+    if (-not (Test-Path $migrateExe)) {
+        Build-Multica
+    }
+
+    if (-not (Wait-TcpPort '127.0.0.1' $config.ports.postgres 30 500)) {
+        throw "Postgres is not ready on port $($config.ports.postgres); cannot run Multica migrations"
+    }
+
+    $env:DATABASE_URL = $runtime.DatabaseUrl
+    try {
+        if (Test-Path $migrateExe) {
+            Push-Location $serverPath
+            try {
+                & $migrateExe up
+                if ($LASTEXITCODE -ne 0) { throw 'Multica migrations failed' }
+            }
+            finally { Pop-Location }
+        }
+        else {
+            $goExe = Resolve-ExecutablePath 'go'
+            if (-not $goExe) {
+                throw 'Multica migrate binary missing and go not available for fallback migration run'
+            }
+
+            Push-Location $serverPath
+            try {
+                & $goExe run ./cmd/migrate up
+                if ($LASTEXITCODE -ne 0) { throw 'Multica migrations failed' }
+            }
+            finally { Pop-Location }
+        }
+    }
+    finally {
+        Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+    }
 }
 
 function Start-MulticaBackend {
@@ -91,6 +148,8 @@ function Start-MulticaBackend {
     if (-not (Test-Path $serverExe)) {
         throw "Multica backend binary not found: $serverExe"
     }
+
+    Invoke-MulticaMigrations
 
     $runtime = Get-MulticaRuntimeSettings
     $envMap = @{

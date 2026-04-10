@@ -74,6 +74,10 @@ Invoke-Step 'Build Multica backend' {
     Build-Multica
 }
 
+Invoke-Step 'Run Multica migrations' {
+    Invoke-MulticaMigrations
+}
+
 Invoke-Step 'Configure pi-searxng' {
     Initialize-PiSearxngConfig
 }

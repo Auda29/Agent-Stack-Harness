@@ -273,6 +273,17 @@ function Test-HttpOk([string]$Url) {
     }
 }
 
+function Wait-TcpPort([string]$Address, [int]$Port, [int]$TimeoutSeconds = 30, [int]$PollMilliseconds = 500) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-TcpPort $Address $Port) {
+            return $true
+        }
+        Start-Sleep -Milliseconds $PollMilliseconds
+    }
+    return $false
+}
+
 function Get-ManagedProcessIdPath([string]$Name) {
     Join-Path (Get-HarnessRoot) "data/pids/$Name.pid"
 }
