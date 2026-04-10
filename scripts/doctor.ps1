@@ -6,8 +6,13 @@ $config = Get-StackConfig
 
 Write-Section 'CLI tools'
 foreach ($cmd in @('git','python','node','pnpm','go','docker','pi')) {
-    if (Test-CommandExists $cmd) {
-        Write-Good "$cmd found"
+    $resolved = Resolve-ExecutablePath $cmd
+    if ($resolved) {
+        if (Test-CommandExists $cmd) {
+            Write-Good "$cmd found"
+        } else {
+            Write-Warn "$cmd is not visible to Get-Command, but a fallback path was found: $resolved"
+        }
     } else {
         $hint = Get-CommandPathHint $cmd
         if ($hint) {
