@@ -67,6 +67,10 @@ Invoke-Step 'Build Multica backend' {
     Build-Multica
 }
 
+Invoke-Step 'Configure pi-searxng' {
+    Initialize-PiSearxngConfig
+}
+
 if ($ProjectPath) {
     Invoke-Step 'Persist project path' {
         if (-not (Test-Path $ProjectPath)) {
@@ -76,6 +80,14 @@ if ($ProjectPath) {
         $config.projectPath = $resolved
         Save-StackConfig $config
         Write-Good "Saved projectPath: $resolved"
+    }
+
+    Invoke-Step 'Bootstrap project pi settings' {
+        Initialize-ProjectPiSettings -ProjectPath $config.projectPath
+    }
+
+    Invoke-Step 'Bootstrap project MCP config' {
+        Initialize-ProjectMcpConfig -ProjectPath $config.projectPath
     }
 
     Invoke-Step 'Bootstrap project AGENTS.md' {

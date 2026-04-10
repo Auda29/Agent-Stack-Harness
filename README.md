@@ -24,6 +24,8 @@ It gives you six scripts:
 - `scripts/stop.ps1` — stops harness-managed services
 - `scripts/doctor.ps1` — diagnostics
 
+These scripts are for stack lifecycle and bootstrap. They are not intended to be the primary runtime API for every stack component.
+
 ## Important limitations
 
 This harness **cannot fully automate** these parts:
@@ -139,7 +141,8 @@ Install does all of this:
 - starts Docker infrastructure
 - installs Python/Node dependencies
 - attempts to build the Multica backend binary
-- if `-ProjectPath` is provided, bootstraps an `AGENTS.md` into that project repo
+- writes `~/.pi/searxng.json` for `pi-searxng`
+- if `-ProjectPath` is provided, bootstraps `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json` into that project repo
 
 ## 3) Run onboarding
 
@@ -149,7 +152,7 @@ Install does all of this:
 
 Then complete the manual login/config steps.
 
-If a project path was saved, onboarding also makes sure a starter `AGENTS.md` exists in that project.
+If a project path was saved, onboarding also refreshes the starter `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json` in that project.
 
 ## 4) Start the stack
 
@@ -181,6 +184,23 @@ Default values are:
 
 The Docker-managed local SearXNG service is still kept in the stack. `pi-searxng` is intended to use that service, not replace it.
 
+## Runtime interface model
+
+Use the harness scripts for:
+
+- installation
+- onboarding
+- start/stop
+- health checks
+- bootstrapping project guidance and Pi config like `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json`
+
+For actual agent work, prefer native runtime integrations:
+
+- **SearXNG**: use `pi-searxng` first, otherwise the local HTTP endpoint
+- **MemPalace**: prefer MCP/native memory integration
+- **agentchattr**: use its native chat/runtime coordination loop
+- **Multica**: interact through its configured frontend/backend services as needed
+
 ## Notes about pi-coding-agent
 
 This harness assumes pi is your main coding-agent CLI.
@@ -207,6 +227,12 @@ The prereq installer also installs these pi packages by default:
 - `pi-mcp-adapter`
 - `pi-lens`
 
+The install/onboarding flow also bootstraps Pi runtime config where possible:
+
+- `~/.pi/searxng.json` for `pi-searxng`
+- `.pi/settings.json` in the target project to mirror package dependencies
+- `.pi/mcp.json` in the target project with a MemPalace MCP server entry
+
 ## Notes about Multica
 
 This harness creates `repos/multica/.env` from `config/multica.env.template`.
@@ -227,6 +253,12 @@ You still need to fill:
 
 The install flow attempts to build the backend automatically, but depending on upstream Multica changes you may still need to build or adjust it manually on Windows.
 
+## Notes about SearXNG
+
+The local Docker-managed SearXNG service remains part of the stack.
+
+`pi-searxng` is configured to use that local instance through `~/.pi/searxng.json`.
+
 ## Notes about MemPalace
 
 MemPalace is installed in **editable mode from the cloned repo**:
@@ -236,6 +268,14 @@ pip install -e .
 ```
 
 That is intentional so you can inspect or patch issues more easily on Windows.
+
+At runtime, MemPalace should ideally be used through its native MCP integration rather than through harness scripts.
+
+If you pass `-ProjectPath`, the harness bootstraps `.pi/mcp.json` in that target project with a `mempalace` server entry using the harness-managed MemPalace virtualenv.
+
+## Notes about agentchattr
+
+agentchattr is started/managed by the harness, but the agent should use agentchattr through its own runtime coordination flow rather than treating the harness scripts as its main interface.
 
 ## Logs
 

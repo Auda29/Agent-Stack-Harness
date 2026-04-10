@@ -2,6 +2,8 @@
 
 This file was bootstrapped by the Agent Stack Harness. Adjust it freely for your project.
 
+The harness may also bootstrap project-local Pi config files such as `.pi/settings.json` and `.pi/mcp.json`.
+
 ## Purpose
 
 You are operating inside the project at:
@@ -22,14 +24,15 @@ Pi automatically reads this `AGENTS.md`. Prefer following these instructions ove
 
 When the user asks you to work on this project:
 
-1. Assume the local harness is the preferred entrypoint for stack setup and health checks.
-2. Prefer existing harness scripts over inventing new startup commands.
-3. Prefer reading config and script files before changing behavior.
-4. Treat this file as project-specific guidance and adapt to user edits here.
+1. Use the harness scripts for environment lifecycle only: install, start, stop, onboarding, and health checks.
+2. Do not treat the harness scripts as the primary runtime API for stack components.
+3. During actual agent work, prefer each component's native runtime interface.
+4. Prefer reading config and script files before changing behavior.
+5. Treat this file as project-specific guidance and adapt to user edits here.
 
-## Preferred commands
+## Lifecycle commands
 
-For stack lifecycle, prefer these commands from the harness repo:
+For stack lifecycle and diagnostics, prefer these commands from the harness repo:
 
 - `scripts/install-prereqs.ps1`
 - `scripts/install.ps1 -ProjectPath "__PROJECT_PATH__"`
@@ -49,9 +52,12 @@ Default harness-managed endpoints:
 
 ## How to use the stack
 
+Use harness scripts for setup/admin tasks.
+Use native integrations for runtime work.
+
 ### Pi packages
 
-The harness installs these default pi packages:
+The harness installs these default pi packages and may also mirror them into project-local `.pi/settings.json`:
 
 - `pi-subagents`
 - `pi-searxng`
@@ -75,8 +81,9 @@ Search guidance:
 
 - first prefer `pi-searxng` if it is available and configured
 - treat the Docker-managed local SearXNG service as the expected backend for that integration
-- if the package is unavailable or insufficient, use the configured local URL carefully
+- if the package is unavailable or insufficient, use the configured local HTTP endpoint carefully
 - do not assume public internet search endpoints when the local SearXNG service exists
+- do not use harness scripts as the search interface; search should happen through `pi-searxng` or the SearXNG HTTP API
 
 ### Subagent guidance
 
@@ -95,9 +102,22 @@ Prefer `pi-mcp-adapter` only when:
 
 - a required tool is exposed through MCP
 - the repository or user explicitly expects an MCP workflow
-- the needed capability is not already available through built-in tools, local scripts, or the other installed pi packages
+- the needed capability is not already available through built-in tools, local runtime interfaces, or the other installed pi packages
 
 Do not route work through MCP by default when simpler local tools are sufficient.
+
+### MemPalace
+
+MemPalace should ideally be used through its native MCP integration when memory tools are needed.
+
+If the harness bootstrapped `.pi/mcp.json`, prefer that configured MCP path first.
+
+Memory guidance:
+
+- prefer MCP-backed MemPalace access over ad-hoc CLI wrappers
+- treat hooks and auto-save behavior as part of the native integration path when configured
+- use non-MCP fallback approaches only if MCP is unavailable for the current runtime
+- do not treat harness scripts as the runtime interface for memory operations
 
 ### Multica
 
@@ -107,9 +127,17 @@ Multica is part of the local stack and may expose frontend/backend services. Bef
 - check health endpoints before relying on it
 - prefer existing environment/config files over hardcoded values
 
-### agentchattr and MemPalace
+### agentchattr
 
-These are local tools managed by the harness. Do not assume a direct pi tool integration exists unless the project adds one.
+agentchattr is a local coordination/chat loop, not the primary target for harness-script-driven interaction.
+
+The harness may start or install agentchattr, but runtime coordination should happen through agentchattr itself rather than through harness wrappers.
+
+Coordination guidance:
+
+- use the native agentchattr runtime/integration path when chat coordination is required
+- treat the harness scripts as startup/admin helpers for agentchattr, not as the main communication interface
+- if the environment already supports direct agent participation, prefer that over script wrappers
 
 ## Editing and automation rules
 
@@ -124,7 +152,10 @@ These are local tools managed by the harness. Do not assume a direct pi tool int
 1. Read this file.
 2. Read the project's README and any local docs.
 3. If the task depends on the stack, inspect `config/stack.json` in the harness repo.
-4. If search is likely useful, prefer `pi-searxng`.
+4. Choose the native runtime path for the component you need:
+   - search -> `pi-searxng` / SearXNG HTTP
+   - memory -> MCP / MemPalace
+   - coordination -> agentchattr runtime
 5. If needed, run `scripts/doctor.ps1` from the harness repo.
 
 ## Customization

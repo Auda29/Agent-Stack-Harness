@@ -29,6 +29,20 @@ $multicaEnv = Join-Path (Get-HarnessRoot) 'repos/multica/.env'
 if (Test-Path $multicaEnv) { Write-Good 'Multica .env exists' } else { Write-Warn 'Multica .env missing' }
 if (Test-MulticaEnvComplete) { Write-Good 'Multica Resend settings appear filled' } else { Write-Warn 'Multica Resend settings incomplete' }
 
+$piSearxngConfig = Join-Path (Get-PiRoot) 'searxng.json'
+if (Test-Path $piSearxngConfig) { Write-Good 'pi-searxng config exists' } else { Write-Warn 'pi-searxng config missing' }
+
+if ($config.projectPath) {
+    $projectPiDir = Join-Path $config.projectPath '.pi'
+    $projectSettings = Join-Path $projectPiDir 'settings.json'
+    $projectMcp = Join-Path $projectPiDir 'mcp.json'
+    $projectAgents = Join-Path $config.projectPath 'AGENTS.md'
+
+    if (Test-Path $projectSettings) { Write-Good 'Project .pi/settings.json exists' } else { Write-Warn 'Project .pi/settings.json missing' }
+    if (Test-Path $projectMcp) { Write-Good 'Project .pi/mcp.json exists' } else { Write-Warn 'Project .pi/mcp.json missing' }
+    if (Test-Path $projectAgents) { Write-Good 'Project AGENTS.md exists' } else { Write-Warn 'Project AGENTS.md missing' }
+}
+
 Write-Section 'Docker containers'
 foreach ($c in @('postgres','searxng')) {
     if (Test-DockerServiceRunning $c) { Write-Good "$c running" } else { Write-Warn "$c not running" }

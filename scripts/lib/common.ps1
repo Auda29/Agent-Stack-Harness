@@ -24,6 +24,114 @@ function Get-ProjectAgentsTemplatePath {
     Join-Path (Get-HarnessRoot) 'config/AGENTS.md.template'
 }
 
+function Get-PiRoot {
+    Join-Path $HOME '.pi'
+}
+
+function Get-PiAgentRoot {
+    Join-Path (Get-PiRoot) 'agent'
+}
+
+function Merge-PackageSettings([object[]]$Existing, [string[]]$DefaultSources) {
+    $items = @()
+    $knownSources = @()
+
+    if ($Existing) {
+        foreach ($item in $Existing) {
+            $items += $item
+            if ($item -is [string]) {
+                $knownSources += $item
+            }
+            elseif ($item.PSObject.Properties.Name -contains 'source') {
+                $knownSources += [string]$item.source
+            }
+        }
+    }
+
+    foreach ($source in $DefaultSources) {
+        if ($source -and ($knownSources -notcontains $source)) {
+            $items += $source
+            $knownSources += $source
+        }
+    }
+
+    return $items
+}
+
+function Initialize-PiSearxngConfig {
+    $config = Get-StackConfig
+    $piRoot = Get-PiRoot
+    Ensure-Dir $piRoot
+
+    $path = Join-Path $piRoot 'searxng.json'
+    $payload = [ordered]@{
+        searxngUrl = $config.urls.searxng
+        timeoutMs = 30000
+        maxResults = 10
+    }
+
+    $payload | ConvertTo-Json -Depth 4 | Set-Content -Path $path -Encoding UTF8
+    Write-Good "Wrote pi-searxng config: $path"
+}
+
+function Initialize-ProjectPiSettings([string]$ProjectPath) {
+    if (-not $ProjectPath) { throw 'ProjectPath is required' }
+
+    $resolvedProjectPath = (Resolve-Path $ProjectPath).Path
+    $piDir = Join-Path $resolvedProjectPath '.pi'
+    Ensure-Dir $piDir
+
+    $path = Join-Path $piDir 'settings.json'
+    $settings = if (Test-Path $path) {
+        Get-Content $path -Raw | ConvertFrom-Json
+    } else {
+        [pscustomobject]@{}
+    }
+
+    $defaultPackages = @(
+        'npm:pi-subagents',
+        'npm:pi-searxng',
+        'npm:pi-mcp-adapter',
+        'npm:pi-lens'
+    )
+
+    $settings | Add-Member -NotePropertyName packages -NotePropertyValue @() -Force
+    $settings.packages = @(Merge-PackageSettings $settings.packages $defaultPackages)
+    $settings | ConvertTo-Json -Depth 8 | Set-Content -Path $path -Encoding UTF8
+    Write-Good "Wrote project pi settings: $path"
+}
+
+function Initialize-ProjectMcpConfig([string]$ProjectPath) {
+    if (-not $ProjectPath) { throw 'ProjectPath is required' }
+
+    $resolvedProjectPath = (Resolve-Path $ProjectPath).Path
+    $piDir = Join-Path $resolvedProjectPath '.pi'
+    Ensure-Dir $piDir
+
+    $path = Join-Path $piDir 'mcp.json'
+    $mcpConfig = if (Test-Path $path) {
+        Get-Content $path -Raw | ConvertFrom-Json
+    } else {
+        [pscustomobject]@{}
+    }
+
+    if ($mcpConfig.PSObject.Properties.Match('mcpServers').Count -eq 0) {
+        $mcpConfig | Add-Member -NotePropertyName mcpServers -NotePropertyValue ([pscustomobject]@{})
+    }
+
+    $pythonExe = Join-Path (Get-HarnessRoot) 'repos/mempalace/.venv/Scripts/python.exe'
+    $serverConfig = [pscustomobject]@{
+        command = $pythonExe
+        args = @('-m', 'mempalace.mcp_server')
+        lifecycle = 'lazy'
+        idleTimeout = 10
+    }
+
+    $mcpConfig.mcpServers | Add-Member -NotePropertyName mempalace -NotePropertyValue $serverConfig -Force
+    $mcpConfig | ConvertTo-Json -Depth 8 | Set-Content -Path $path -Encoding UTF8
+    Write-Good "Wrote project MCP config: $path"
+}
+
 function Initialize-ProjectAgentsMd([string]$ProjectPath, [switch]$Force) {
     if (-not $ProjectPath) { throw 'ProjectPath is required' }
 
