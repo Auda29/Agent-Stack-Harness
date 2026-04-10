@@ -25,35 +25,35 @@ if (-not $SkipPrereqs) {
 }
 
 Write-Section 'Quick install: stack install'
-$installArgs = @()
+$installParams = @{}
 if ($ProjectPath) {
-    $installArgs += @('-ProjectPath', $ProjectPath)
+    $installParams.ProjectPath = $ProjectPath
 }
 if ($IncludeMultica) {
-    $installArgs += '-IncludeMultica'
+    $installParams.IncludeMultica = $true
 }
-& (Join-Path $scriptRoot 'install.ps1') @installArgs
+& (Join-Path $scriptRoot 'install.ps1') @installParams
 if ($LASTEXITCODE -ne 0) {
     throw 'install.ps1 failed'
 }
 
 Write-Section 'Quick install: onboarding'
-$onboardingArgs = @()
+$onboardingParams = @{}
 if ($IncludeMultica) {
-    $onboardingArgs += '-IncludeMultica'
+    $onboardingParams.IncludeMultica = $true
 }
-& (Join-Path $scriptRoot 'onboarding.ps1') @onboardingArgs
+& (Join-Path $scriptRoot 'onboarding.ps1') @onboardingParams
 if ($LASTEXITCODE -ne 0) {
     throw 'onboarding.ps1 failed'
 }
 
 if (-not $SkipStart) {
     Write-Section 'Quick install: start'
-    $startArgs = @()
+    $startParams = @{}
     if ($IncludeMultica) {
-        $startArgs += '-IncludeMultica'
+        $startParams.IncludeMultica = $true
     }
-    & (Join-Path $scriptRoot 'start.ps1') @startArgs
+    & (Join-Path $scriptRoot 'start.ps1') @startParams
     if ($LASTEXITCODE -ne 0) {
         throw 'start.ps1 failed'
     }

@@ -17,7 +17,8 @@ $piPackages = @(
     @{ Source = 'npm:pi-subagents'; Name = 'pi-subagents' },
     @{ Source = 'npm:pi-searxng'; Name = 'pi-searxng' },
     @{ Source = 'npm:pi-mcp-adapter'; Name = 'pi-mcp-adapter' },
-    @{ Source = 'npm:pi-lens'; Name = 'pi-lens' }
+    @{ Source = 'npm:pi-lens'; Name = 'pi-lens' },
+    @{ Source = 'npm:@tintinweb/pi-tasks'; Name = 'pi-tasks' }
 )
 
 function Write-Section([string]$Text) {
@@ -133,5 +134,5 @@ if ($IncludeOptionalTools) {
 Write-Section 'Manual follow-up'
 Write-Host 'Some tools may require a new terminal session before they appear in PATH.' -ForegroundColor White
 Write-Host 'You still need to log into pi manually: run `pi`, then `/login` or use provider API keys.' -ForegroundColor White
-Write-Host 'Default pi packages are also installed: pi-subagents, pi-searxng, pi-mcp-adapter, pi-lens.' -ForegroundColor White
+Write-Host 'Default pi packages are also installed: pi-subagents, pi-searxng, pi-mcp-adapter, pi-lens, pi-tasks.' -ForegroundColor White
 Write-Host 'Next step: run .\scripts\install.ps1' -ForegroundColor White

@@ -23,19 +23,29 @@ Invoke-Step 'Check prerequisites' {
     foreach ($cmd in @('git','python','node','docker')) {
         if (Test-CommandExists $cmd) { Write-Good "$cmd found" } else { Write-Warn "$cmd not found" }
     }
-    if (-not (Resolve-ExecutablePath 'pnpm')) { Write-Warn 'pnpm not found; Multica frontend install will fail until installed' }
-    $goPath = Resolve-ExecutablePath 'go'
-    if (-not $goPath) {
-        Write-Warn 'go not found; Multica backend build may fail until installed'
-    } elseif (-not (Test-CommandExists 'go')) {
-        Write-Warn "go is not visible to Get-Command, but a fallback path was found: $goPath"
+
+    if ($IncludeMultica) {
+        if (-not (Resolve-ExecutablePath 'pnpm')) { Write-Warn 'pnpm not found; Multica frontend install will fail until installed' }
+        $goPath = Resolve-ExecutablePath 'go'
+        if (-not $goPath) {
+            Write-Warn 'go not found; Multica backend build may fail until installed'
+        } elseif (-not (Test-CommandExists 'go')) {
+            Write-Warn "go is not visible to Get-Command, but a fallback path was found: $goPath"
+        } else {
+            Write-Good "go found ($goPath)"
+        }
     } else {
-        Write-Good "go found ($goPath)"
+        Write-Info 'Skipping Multica-only prerequisite checks for pnpm/go (use -IncludeMultica to enable)'
     }
 }
 
 Invoke-Step 'Clone or update repositories' {
     foreach ($name in $config.repos.PSObject.Properties.Name) {
+        if ($name -eq 'multica' -and -not $IncludeMultica) {
+            Write-Info 'Skipping multica repository clone/update (use -IncludeMultica to enable)'
+            continue
+        }
+
         $url = $config.repos.$name
         $target = Join-Path $root "repos/$name"
         if (Test-Path $target) {

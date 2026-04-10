@@ -1,21 +1,21 @@
-{
-  "projectPath": "",
-  "dockerProjectName": "agent-stack",
-  "ports": {
-    "postgres": 5432,
-    "searxng": 8888,
-    "multicaBackend": 8080,
-    "multicaFrontend": 3000
-  },
-  "urls": {
-    "searxng": "http://localhost:8888",
-    "multicaFrontend": "http://localhost:3000",
-    "multicaBackendHealth": "http://localhost:8080/health",
-    "multicaWebSocket": "ws://localhost:8080/ws"
-  },
-  "repos": {
-    "multica": "https://github.com/multica-ai/multica.git",
-    "agentchattr": "https://github.com/bcurts/agentchattr.git",
-    "mempalace": "https://github.com/milla-jovovich/mempalace.git"
-  }
+﻿{
+    "projectPath":  "C:\\Users\\wecke\\Projects\\Floorplan_UI_TestSetup",
+    "dockerProjectName":  "agent-stack",
+    "ports":  {
+                  "postgres":  5432,
+                  "searxng":  8888,
+                  "multicaBackend":  8080,
+                  "multicaFrontend":  3000
+              },
+    "urls":  {
+                 "searxng":  "http://localhost:8888",
+                 "multicaFrontend":  "http://localhost:3000",
+                 "multicaBackendHealth":  "http://localhost:8080/health",
+                 "multicaWebSocket":  "ws://localhost:8080/ws"
+             },
+    "repos":  {
+                  "multica":  "https://github.com/multica-ai/multica.git",
+                  "agentchattr":  "https://github.com/bcurts/agentchattr.git",
+                  "mempalace":  "https://github.com/milla-jovovich/mempalace.git"
+              }
 }

@@ -27,8 +27,9 @@ When the user asks you to work on this project:
 1. Use the harness scripts for environment lifecycle only: install, start, stop, onboarding, and health checks.
 2. Do not treat the harness scripts as the primary runtime API for stack components.
 3. During actual agent work, prefer each component's native runtime interface.
-4. Prefer reading config and script files before changing behavior.
-5. Treat this file as project-specific guidance and adapt to user edits here.
+4. For non-trivial multi-step work, prefer explicit task tracking with `@tintinweb/pi-tasks` instead of keeping an informal plan only in chat.
+5. Prefer reading config and script files before changing behavior.
+6. Treat this file as project-specific guidance and adapt to user edits here.
 
 ## Lifecycle commands
 
@@ -63,15 +64,38 @@ The harness installs these default pi packages and may also mirror them into pro
 - `pi-searxng`
 - `pi-mcp-adapter`
 - `pi-lens`
+- `@tintinweb/pi-tasks`
 
 Use them when appropriate, but do not assume they replace project-specific instructions.
 
 Default package priorities:
 
-1. Prefer `pi-searxng` first for search and external information gathering.
-2. Prefer `pi-subagents` for larger tasks that benefit from delegation, parallel recon, isolated context, or review passes.
-3. Use `pi-lens` when it helps inspect, navigate, or understand available project/agent context.
-4. Use `pi-mcp-adapter` only when MCP-backed tools or workflows are actually needed for the task.
+1. Prefer `@tintinweb/pi-tasks` to track non-trivial work as explicit tasks with status, dependencies, and progress updates.
+2. Prefer `pi-searxng` first for search and external information gathering.
+3. Prefer `pi-subagents` for larger tasks that benefit from delegation, parallel recon, isolated context, or review passes.
+4. Use `pi-lens` when it helps inspect, navigate, or understand available project/agent context.
+5. Use `pi-mcp-adapter` only when MCP-backed tools or workflows are actually needed for the task.
+
+### Task tracking guidance
+
+Treat `@tintinweb/pi-tasks` as the default task-management layer for meaningful work in this project.
+
+Prefer `@tintinweb/pi-tasks` when:
+
+- the task has multiple steps, dependencies, or acceptance criteria
+- you want persistent progress tracking across a longer session
+- you are coordinating multiple subtasks, background work, or subagents
+- the work would benefit from an explicit task list rather than ad-hoc TODO text in the conversation
+- you want a clearer record of what is pending, in progress, blocked, or done
+
+Expected behavior for larger work:
+
+- create or update tasks early
+- keep task status reasonably current as work progresses
+- use the task list to reflect plan changes, blockers, and completion
+- avoid letting the task list drift far away from actual work state
+
+For trivial one-file edits or quick factual answers, do not force task overhead.
 
 ### SearXNG
 
@@ -151,12 +175,14 @@ Coordination guidance:
 
 1. Read this file.
 2. Read the project's README and any local docs.
-3. If the task depends on the stack, inspect `config/stack.json` in the harness repo.
-4. Choose the native runtime path for the component you need:
+3. Decide whether the task is substantial enough to warrant `@tintinweb/pi-tasks`; if yes, use it early.
+4. If the task depends on the stack, inspect `config/stack.json` in the harness repo.
+5. Choose the native runtime path for the component you need:
+   - tasks -> `@tintinweb/pi-tasks`
    - search -> `pi-searxng` / SearXNG HTTP
    - memory -> MCP / MemPalace
    - coordination -> agentchattr runtime
-5. If needed, run `scripts/doctor.ps1` from the harness repo.
+6. If needed, run `scripts/doctor.ps1` from the harness repo.
 
 ## Customization
 

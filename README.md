@@ -1,35 +1,40 @@
-# Agent Stack Harness (Windows Hybrid)
+# Agent Stack Harness (Pi-first on Windows)
 
-This harness is a **starter scaffold** for the stack:
+This harness is a **Pi-first starter scaffold** for local agent work on Windows.
+
+Core stack:
 
 - pi-coding-agent
 - SearXNG
 - MemPalace
 - agentchattr
-- Multica (optional)
 
-It is designed for a **Windows laptop** with a **hybrid setup**:
+Optional:
+
+- Multica
+
+Runtime model:
 
 - **Docker** for infrastructure (`postgres`, `searxng`)
-- **Local Windows processes** for agent-facing tools (`multica`, `agentchattr`, `pi`, `mempalace`)
+- **Local Windows processes** for agent-facing tools (`pi`, `mempalace`, `agentchattr`)
 
 ## Quickstart
 
-For the fastest first local setup on Windows:
+Fastest path:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\quickinstall.ps1 -ProjectPath "C:\Path\To\Your\Project"
 ```
 
-This runs, in order:
+Then:
 
-- `scripts/install-prereqs.ps1`
-- `scripts/install.ps1`
-- `scripts/onboarding.ps1`
-- `scripts/start.ps1`
+- open your target project folder
+- run `pi`
+- run `/login`
+- for non-trivial work, prefer `@tintinweb/pi-tasks` to track steps and progress inside Pi
 
-If you prefer to run the steps manually:
+Manual flow:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -39,59 +44,38 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\start.ps1
 ```
 
-If you want to include Multica as well, pass `-IncludeMultica` to those scripts:
+Optional Multica flow:
 
 ```powershell
 .\scripts\quickinstall.ps1 -ProjectPath "C:\Path\To\Your\Project" -IncludeMultica
 ```
 
-Then:
-
-- open your target project folder
-- run `pi`
-- run `/login` inside pi
-- if you explicitly enabled Multica and its email login is in dev mode without `RESEND_API_KEY`, read the verification code from `data/logs/multica-backend*.out.log`
-
 ## What this harness does
 
-It gives you seven scripts:
+Core scripts:
 
-- `scripts/quickinstall.ps1` — one-shot first-time setup wrapper
-- `scripts/install-prereqs.ps1` — installs Windows prerequisites via `winget`
-- `scripts/install.ps1` — first-time setup
-- `scripts/onboarding.ps1` — guided manual steps
-- `scripts/start.ps1` — starts the daily stack, including an attempt to start the local Multica daemon if the CLI is logged in
-- `scripts/stop.ps1` — stops harness-managed services and the local Multica daemon
-- `scripts/doctor.ps1` — diagnostics
+- `quickinstall.ps1` — one-shot setup
+- `install-prereqs.ps1` — prerequisites
+- `install.ps1` — install/bootstrap
+- `onboarding.ps1` — refresh config + next steps
+- `start.ps1` / `stop.ps1` — daily lifecycle
+- `doctor.ps1` — diagnostics
 
-These scripts are for stack lifecycle and bootstrap. They are not intended to be the primary runtime API for every stack component.
-
-By default, the main flow is now Pi-first. Multica is available only when explicitly enabled.
+By default, the flow is Pi-first. Multica is only included with `-IncludeMultica`.
 
 ## Important limitations
 
 This harness **cannot fully automate** these parts:
 
 - pi login / provider authentication
-- Multica Resend configuration
-- Multica build edge cases on Windows
 - MemPalace hook quirks on Windows
+- Multica login/build edge cases if you explicitly enable Multica
 
-Those are the spots where you must still intervene manually.
+Those are the places where manual intervention may still be needed.
 
 ## Dependency management note
 
-A single `requirements.txt` is not enough for this repo because the prerequisites are not only Python packages. This harness depends on a mix of system tools and ecosystems:
-
-- Docker Desktop
-- Git
-- Python
-- Node.js / npm
-- pnpm
-- Go
-- pi-coding-agent
-
-So this repo uses a Windows bootstrap script (`scripts/install-prereqs.ps1`) instead of pretending everything can be expressed as Python dependencies.
+This repo depends on system tools across multiple ecosystems, so a single `requirements.txt` would not be enough. Use `scripts/install-prereqs.ps1` for bootstrap.
 
 ## Configuration
 
@@ -105,10 +89,13 @@ That file is the source of truth for:
 - local URLs used by the harness
 - cloned repo URLs
 
-Current defaults:
+Current core defaults:
 
 - Postgres: `5432`
 - SearXNG: `8888`
+
+Optional Multica defaults:
+
 - Multica backend: `8080`
 - Multica frontend: `3000`
 
@@ -118,8 +105,8 @@ If you change ports in `config/stack.json`, the harness will sync them into:
 
 - Docker Compose port bindings
 - generated root `.env` for Compose
-- `repos/multica/.env`
-- Multica runtime environment variables used by `start.ps1`
+- `repos/multica/.env` when Multica is enabled
+- Multica runtime environment variables used by `start.ps1` when Multica is enabled
 
 ## Recommended order
 
@@ -138,6 +125,9 @@ This installs the core prerequisites via `winget`:
 - Git
 - Python 3.11+
 - Node.js
+
+It also installs useful optional developer tooling commonly needed by Pi packages and optional Multica support:
+
 - pnpm
 - Go
 
@@ -145,12 +135,13 @@ Then it installs this agent CLI globally via npm:
 
 - `@mariozechner/pi-coding-agent`
 
-And it installs these default pi packages via `pi install`:
+And it installs these default Pi packages via `pi install`:
 
-- `npm:pi-subagents`
-- `npm:pi-searxng`
-- `npm:pi-mcp-adapter`
-- `npm:pi-lens`
+- `npm:@tintinweb/pi-tasks` — structured multi-step task tracking inside Pi
+- `npm:pi-subagents` — delegation and isolated-context helper flows
+- `npm:pi-searxng` — Pi-native search against the local SearXNG instance
+- `npm:pi-mcp-adapter` — MCP-backed tool integration when needed
+- `npm:pi-lens` — extra inspection/context tooling
 
 Optional:
 
@@ -159,12 +150,9 @@ Optional:
 ```
 
 Notes:
-- the script is safe to rerun; it skips tools that are already installed or already on `PATH`
-- you may need to open a **new PowerShell window** after installation so PATH updates are visible
-- pi authentication is still manual: run `pi`, then `/login`, or use provider API keys
-- the prereq script also installs `pi-subagents`, `pi-searxng`, `pi-mcp-adapter`, and `pi-lens` by default
-
-If you prefer, you can still install everything manually.
+- safe to rerun
+- open a **new PowerShell window** if PATH changes are not visible yet
+- pi authentication is still manual: run `pi`, then `/login`
 
 ## 2) Run install
 
@@ -180,12 +168,12 @@ Set-ExecutionPolicy -Scope Process Bypass
 Install does all of this:
 
 - prepares local folders
-- clones or updates the dependent repos
+- clones or updates the dependent repos needed for the selected flow
 - starts Docker infrastructure
 - installs Python/Node dependencies for the non-Multica tools
 - writes `~/.pi/searxng.json` for `pi-searxng`
 - if `-ProjectPath` is provided, bootstraps `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json` into that project repo
-- if `-IncludeMultica` is passed, also creates `repos/multica/.env`, installs Multica dependencies, builds Multica, and runs Multica migrations
+- if `-IncludeMultica` is passed, also clones/updates `repos/multica`, creates `repos/multica/.env`, installs Multica dependencies, builds Multica, and runs Multica migrations
 
 ## 3) Run onboarding
 
@@ -244,97 +232,82 @@ docker pull pgvector/pgvector:pg17
 .\scripts\stop.ps1
 ```
 
+To also stop Multica processes/daemon:
+
+```powershell
+.\scripts\stop.ps1 -IncludeMultica
+```
+
 ## URLs
 
-The actual URLs come from `config/stack.json`.
+Actual URLs come from `config/stack.json`.
 
-Default values are:
+Core default:
 
 - SearXNG: `http://localhost:8888`
-- Multica frontend: `http://localhost:3000`
-- Multica backend health: `http://localhost:8080/health`
 
-The Docker-managed local SearXNG service is still kept in the stack. `pi-searxng` is intended to use that service, not replace it.
+Optional Multica defaults:
 
-## Runtime interface model
+- frontend: `http://localhost:3000`
+- backend health: `http://localhost:8080/health`
 
-Use the harness scripts for:
+## Runtime model
 
-- installation
-- onboarding
-- start/stop
-- health checks
-- bootstrapping project guidance and Pi config like `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json`
+Use the harness scripts for setup, lifecycle, diagnostics, and project bootstrap.
 
 For actual agent work, prefer native runtime integrations:
 
-- **SearXNG**: use `pi-searxng` first, otherwise the local HTTP endpoint
-- **MemPalace**: prefer MCP/native memory integration
-- **agentchattr**: use its native chat/runtime coordination loop
-- **Multica**: interact through its configured frontend/backend services as needed
+- **Tasks**: `@tintinweb/pi-tasks` for structured multi-step work and progress tracking
+- **SearXNG**: `pi-searxng` first, otherwise the local HTTP endpoint
+- **MemPalace**: MCP/native integration
+- **agentchattr**: its own runtime coordination flow
+- **Multica**: only if you explicitly enabled it
 
 ## Notes about pi-coding-agent
 
-This harness assumes pi is your main coding-agent CLI.
+This harness assumes `pi` is your main coding-agent CLI.
 
-Use pi like this after installation:
+After installation:
 
 ```powershell
 pi
 ```
 
-Then either:
+Then run `/login` or configure provider API keys.
 
-- run `/login` and select a supported provider/subscription
-- or configure provider API keys in your environment
+The harness also bootstraps:
 
-Pi also supports RPC mode and an SDK, but this harness currently uses pi simply as the user-facing coding-agent CLI.
+- `AGENTS.md`
+- `~/.pi/searxng.json`
+- project `.pi/settings.json`
+- project `.pi/mcp.json`
 
-Pi automatically reads `AGENTS.md` files from the current directory and parent directories. This harness uses that behavior by bootstrapping a starter `AGENTS.md` into your saved project path.
+Project `.pi/settings.json` mirrors the default package set, including `@tintinweb/pi-tasks`, so project-local Pi startup picks up the same core workflow packages.
 
-The prereq installer also installs these pi packages by default:
+## Notes about Multica (optional)
 
-- `pi-subagents`
-- `pi-searxng`
-- `pi-mcp-adapter`
-- `pi-lens`
+Multica is no longer part of the default flow.
 
-The install/onboarding flow also bootstraps Pi runtime config where possible:
+Only when you pass `-IncludeMultica`, the harness will:
 
-- `~/.pi/searxng.json` for `pi-searxng`
-- `.pi/settings.json` in the target project to mirror package dependencies
-- `.pi/mcp.json` in the target project with a MemPalace MCP server entry
+- clone/update `repos/multica`
+- create `repos/multica/.env` from `config/multica.env.template`
+- install dependencies
+- build the backend
+- run migrations
+- include Multica onboarding/start/stop/doctor steps
 
-## Notes about Multica
-
-This harness creates `repos/multica/.env` from `config/multica.env.template`.
-
-Managed values are synced automatically by the harness:
-
-- `DATABASE_URL`
-- `FRONTEND_ORIGIN`
-- `CORS_ALLOWED_ORIGINS`
-- `PORT`
-- `FRONTEND_PORT`
-
-You still need to fill:
+If you enable it, you still need to fill values like:
 
 - `JWT_SECRET`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 
-For local development, `RESEND_API_KEY` is optional. If it is left empty, Multica does not send a real email; it prints the verification code to the backend log instead. Check:
-
-- `data/logs/multica-backend*.out.log`
-- `data/logs/multica-backend*.err.log`
-
-The install flow attempts to build the backend automatically, but depending on upstream Multica changes you may still need to build or adjust it manually on Windows.
+Without `RESEND_API_KEY`, Multica prints local dev verification codes into backend logs instead of sending email.
 
 ## Notes about SearXNG
 
-The local Docker-managed SearXNG service remains part of the stack.
-
-`pi-searxng` is configured to use that local instance through `~/.pi/searxng.json`.
+The local Docker-managed SearXNG service remains part of the stack, and `pi-searxng` is configured to use it through `~/.pi/searxng.json`.
 
 ## Notes about MemPalace
 
@@ -349,6 +322,19 @@ That is intentional so you can inspect or patch issues more easily on Windows.
 At runtime, MemPalace should ideally be used through its native MCP integration rather than through harness scripts.
 
 If you pass `-ProjectPath`, the harness bootstraps `.pi/mcp.json` in that target project with a `mempalace` server entry using the harness-managed MemPalace virtualenv.
+
+## Notes about pi-tasks
+
+`@tintinweb/pi-tasks` is included in the default Pi package set and should be treated as the default task-management layer for longer Pi sessions.
+
+Use it for:
+
+- multi-step implementation work
+- explicit task lists and dependencies
+- progress tracking across longer sessions
+- coordinating subtasks or subagents when needed
+
+For very small one-shot edits, do not force unnecessary task overhead.
 
 ## Notes about agentchattr
 

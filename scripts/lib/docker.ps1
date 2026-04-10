@@ -25,10 +25,31 @@ function Get-DockerComposeArgs {
 }
 
 function Invoke-DockerCommand([string[]]$Arguments) {
-    $output = & docker @Arguments 2>&1
-    return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
-        Output = (($output | ForEach-Object { [string]$_ }) -join "`n")
+    $previousEap = $ErrorActionPreference
+    $nativePreferenceWasPresent = Test-Path Variable:PSNativeCommandUseErrorActionPreference
+    if ($nativePreferenceWasPresent) {
+        $previousNativePreference = $PSNativeCommandUseErrorActionPreference
+    }
+
+    try {
+        $ErrorActionPreference = 'Continue'
+        if ($nativePreferenceWasPresent) {
+            $PSNativeCommandUseErrorActionPreference = $false
+        }
+
+        $output = & docker @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+
+        return [pscustomobject]@{
+            ExitCode = $exitCode
+            Output = (($output | ForEach-Object { [string]$_ }) -join "`n")
+        }
+    }
+    finally {
+        $ErrorActionPreference = $previousEap
+        if ($nativePreferenceWasPresent) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativePreference
+        }
     }
 }
 
@@ -84,6 +105,9 @@ function Start-Infrastructure {
     $config = Get-StackConfig
     if (-not (Wait-TcpPort '127.0.0.1' $config.ports.postgres 30 500)) {
         throw "Postgres did not become ready on port $($config.ports.postgres) after docker compose up"
+    }
+    if (-not (Wait-TcpPort '127.0.0.1' $config.ports.searxng 30 500)) {
+        throw "SearXNG did not become ready on port $($config.ports.searxng) after docker compose up"
     }
 }
 

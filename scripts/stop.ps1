@@ -1,14 +1,22 @@
+param(
+    [switch]$IncludeMultica
+)
+
 . (Join-Path $PSScriptRoot 'lib/common.ps1')
 . (Join-Path $PSScriptRoot 'lib/docker.ps1')
 . (Join-Path $PSScriptRoot 'lib/multica.ps1')
 . (Join-Path $PSScriptRoot 'lib/agentchattr.ps1')
 
-Invoke-Step 'Stop local Multica processes' {
-    Stop-MulticaProcesses
-}
+if ($IncludeMultica) {
+    Invoke-Step 'Stop local Multica processes' {
+        Stop-MulticaProcesses
+    }
 
-Invoke-Step 'Stop Multica daemon' {
-    Stop-MulticaDaemon
+    Invoke-Step 'Stop Multica daemon' {
+        Stop-MulticaDaemon
+    }
+} else {
+    Write-Info 'Skipping Multica shutdown (use -IncludeMultica to enable)'
 }
 
 Invoke-Step 'Stop agentchattr' {

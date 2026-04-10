@@ -92,7 +92,8 @@ function Initialize-ProjectPiSettings([string]$ProjectPath) {
         'npm:pi-subagents',
         'npm:pi-searxng',
         'npm:pi-mcp-adapter',
-        'npm:pi-lens'
+        'npm:pi-lens',
+        'npm:@tintinweb/pi-tasks'
     )
 
     $settings | Add-Member -NotePropertyName packages -NotePropertyValue @() -Force
