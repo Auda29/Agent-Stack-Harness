@@ -93,7 +93,7 @@ function Start-BackgroundProcess {
     param(
         [string]$Name,
         [string]$FilePath,
-        [string]$Arguments = '',
+        [string[]]$Arguments = @(),
         [string]$WorkingDirectory = '',
         [hashtable]$Environment = @{}
     )
@@ -118,14 +118,16 @@ function Start-BackgroundProcess {
         "`$env:$escapedKey = '$escapedValue'"
     }
 
-    $invokeLines = if ([string]::IsNullOrWhiteSpace($Arguments)) {
+    $invokeLines = if ($Arguments.Count -eq 0) {
         @("& '$escapedFilePath'")
     } else {
+        $escapedArgs = $Arguments | ForEach-Object {
+            "'" + ([string]$_).Replace("'", "''") + "'"
+        }
+        $argumentListLiteral = '@(' + ($escapedArgs -join ', ') + ')'
         @(
-            "`$escapedArguments = @'"
-            $Arguments
-            "'@"
-            "Invoke-Expression (`"& '$escapedFilePath' `" + `$escapedArguments)"
+            "`$argumentList = $argumentListLiteral"
+            "& '$escapedFilePath' @argumentList"
         )
     }
 
@@ -149,7 +151,17 @@ function Start-BackgroundProcess {
         -WindowStyle Hidden `
         -PassThru
 
-    Set-Content -Path $pidFile -Value $proc.Id -Encoding ASCII
+    Start-Sleep -Milliseconds 200
+    $startedProc = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
+    $metadata = [pscustomobject]@{
+        Pid = $proc.Id
+        Name = $Name
+        FilePath = $FilePath
+        WorkingDirectory = $WorkingDirectory
+        StartTimeUtc = if ($startedProc) { $startedProc.StartTime.ToUniversalTime().ToString('o') } else { $null }
+    }
+
+    $metadata | ConvertTo-Json -Depth 4 | Set-Content -Path $pidFile -Encoding UTF8
     return $proc
 }
 
@@ -160,10 +172,32 @@ function Stop-ManagedProcess([string]$Name) {
         return
     }
 
-    $pidText = (Get-Content $pidFile -Raw).Trim()
-    if ($pidText) {
+    $raw = Get-Content $pidFile -Raw
+    $metadata = $null
+    $pid = $null
+
+    try {
+        $metadata = $raw | ConvertFrom-Json -ErrorAction Stop
+        $pid = [int]$metadata.Pid
+    }
+    catch {
+        $pid = [int]($raw.Trim())
+    }
+
+    if ($pid) {
         try {
-            $proc = Get-Process -Id ([int]$pidText) -ErrorAction Stop
+            $proc = Get-Process -Id $pid -ErrorAction Stop
+
+            if ($metadata -and $metadata.StartTimeUtc) {
+                $expected = [datetime]::Parse($metadata.StartTimeUtc).ToUniversalTime()
+                $actual = $proc.StartTime.ToUniversalTime()
+                if ($actual -ne $expected) {
+                    Write-Warn "$Name PID $pid belongs to a different process instance now; refusing to stop it"
+                    Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+                    return
+                }
+            }
+
             Stop-Process -Id $proc.Id -Force -ErrorAction Stop
             Write-Good "Stopped $Name (PID $($proc.Id))"
         }

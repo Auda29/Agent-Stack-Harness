@@ -4,13 +4,29 @@ function Test-DockerAvailable {
     Test-CommandExists 'docker'
 }
 
+function Get-DockerComposeEnvPath {
+    Join-Path (Get-HarnessRoot) '.env'
+}
+
+function Sync-DockerComposeEnv {
+    $config = Get-StackConfig
+    $envPath = Get-DockerComposeEnvPath
+    $content = @(
+        "POSTGRES_PORT=$($config.ports.postgres)"
+        "SEARXNG_PORT=$($config.ports.searxng)"
+    ) -join "`r`n"
+    Set-Content -Path $envPath -Value ($content + "`r`n") -Encoding UTF8
+}
+
 function Get-DockerComposeArgs {
     $root = Get-HarnessRoot
-    return @('compose', '-f', (Join-Path $root 'docker-compose.yml'))
+    $config = Get-StackConfig
+    return @('compose', '-p', $config.dockerProjectName, '-f', (Join-Path $root 'docker-compose.yml'))
 }
 
 function Start-Infrastructure {
     if (-not (Test-DockerAvailable)) { throw 'docker not found in PATH' }
+    Sync-DockerComposeEnv
     Push-Location (Get-HarnessRoot)
     try {
         & docker @((Get-DockerComposeArgs) + @('up', '-d'))
@@ -21,6 +37,7 @@ function Start-Infrastructure {
 
 function Stop-Infrastructure {
     if (-not (Test-DockerAvailable)) { throw 'docker not found in PATH' }
+    Sync-DockerComposeEnv
     Push-Location (Get-HarnessRoot)
     try {
         & docker @((Get-DockerComposeArgs) + @('down'))

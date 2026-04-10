@@ -63,6 +63,10 @@ Invoke-Step 'Install Multica dependencies' {
     Install-MulticaDependencies
 }
 
+Invoke-Step 'Build Multica backend' {
+    Build-Multica
+}
+
 if ($ProjectPath) {
     Invoke-Step 'Persist project path' {
         if (-not (Test-Path $ProjectPath)) {
