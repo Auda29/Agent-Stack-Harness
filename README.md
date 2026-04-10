@@ -183,7 +183,17 @@ Install does all of this:
 
 Then complete the manual login/config steps.
 
-If a project path was saved, onboarding also refreshes the starter `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json` in that project.
+If a project path was saved, onboarding also:
+
+- refreshes the starter `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json`
+- runs `mempalace init <project> --yes`
+- verifies MemPalace with `mempalace status`
+
+Recommended next memory step after onboarding:
+
+```powershell
+mempalace mine "C:\Path\To\Your\Project"
+```
 
 If you want Multica onboarding too, run:
 
@@ -321,7 +331,17 @@ That is intentional so you can inspect or patch issues more easily on Windows.
 
 At runtime, MemPalace should ideally be used through its native MCP integration rather than through harness scripts.
 
-If you pass `-ProjectPath`, the harness bootstraps `.pi/mcp.json` in that target project with a `mempalace` server entry using the harness-managed MemPalace virtualenv.
+If you pass `-ProjectPath`, the harness now also:
+
+- bootstraps `.pi/mcp.json` with a `mempalace` MCP server entry
+- runs `mempalace init <project> --yes` during onboarding
+- checks `mempalace status`
+
+Recommended next step when you actually want to ingest project knowledge:
+
+```powershell
+mempalace mine "C:\Path\To\Your\Project"
+```
 
 ## Notes about pi-tasks
 
