@@ -106,11 +106,12 @@ function Start-MulticaFrontend {
 
     $runtime = Get-MulticaRuntimeSettings
     $envMap = @{
+        FRONTEND_PORT = [string](Get-StackConfig).ports.multicaFrontend
         REMOTE_API_URL = $runtime.BackendUrl
         NEXT_PUBLIC_API_URL = $runtime.BackendUrl
         NEXT_PUBLIC_WS_URL = $runtime.WebSocketUrl
     }
-    Start-BackgroundProcess -Name 'multica-frontend' -FilePath 'pnpm.cmd' -Arguments @('start') -WorkingDirectory $webPath -Environment $envMap | Out-Null
+    Start-BackgroundProcess -Name 'multica-frontend' -FilePath 'pnpm.cmd' -Arguments @('exec', 'next', 'dev', '--port', $envMap.FRONTEND_PORT) -WorkingDirectory $webPath -Environment $envMap | Out-Null
 }
 
 function Stop-MulticaProcesses {
