@@ -1,6 +1,7 @@
 . (Join-Path $PSScriptRoot 'lib/common.ps1')
 . (Join-Path $PSScriptRoot 'lib/docker.ps1')
 . (Join-Path $PSScriptRoot 'lib/env.ps1')
+. (Join-Path $PSScriptRoot 'lib/multica.ps1')
 
 $config = Get-StackConfig
 Write-Section 'Onboarding checklist'
@@ -33,11 +34,13 @@ if (-not (Test-MulticaEnvComplete)) {
     Write-Good 'Multica .env looks complete'
 }
 
+Write-Section 'Multica CLI login'
+Invoke-MulticaCliLogin
+
 Write-Info 'Next manual actions:'
 Write-Host '  1) Start pi: run `pi`' -ForegroundColor White
 Write-Host '  2) Inside pi, run `/login` and select your provider, or configure provider API keys' -ForegroundColor White
 Write-Host '  3) Restart pi after package/config changes so pi-searxng and pi-mcp-adapter pick them up' -ForegroundColor White
-Write-Host '  4) Verify Multica build succeeded during install; rebuild manually only if needed' -ForegroundColor White
-Write-Host '  5) Review and customize the generated AGENTS.md and .pi config files in your project repo if needed' -ForegroundColor White
-Write-Host '  6) Then run start.ps1' -ForegroundColor White
-Write-Host '  7) Multica runtimes appear only after the Multica daemon is running; if none appear, check whether `multica daemon start` succeeded on your machine' -ForegroundColor White
+Write-Host '  4) Review and customize the generated AGENTS.md and .pi config files in your project repo if needed' -ForegroundColor White
+Write-Host '  5) Then run start.ps1' -ForegroundColor White
+Write-Host '  6) Multica runtimes appear only after the Multica daemon is running; if none appear, check whether `multica daemon start` succeeded on your machine' -ForegroundColor White

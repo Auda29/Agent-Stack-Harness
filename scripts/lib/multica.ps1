@@ -48,12 +48,8 @@ function Build-Multica {
     $migrateExe = Get-MulticaMigrateBinaryPath
     $cliExe = Get-MulticaCliBinaryPath
 
-    if ((Test-Path $serverExe) -and (Test-Path $migrateExe)) {
-        if (Test-Path $cliExe) {
-            Write-Info "Multica binaries already exist: $serverExe ; $migrateExe ; $cliExe"
-        } else {
-            Write-Info "Multica backend binaries already exist: $serverExe ; $migrateExe"
-        }
+    if ((Test-Path $serverExe) -and (Test-Path $migrateExe) -and (Test-Path $cliExe)) {
+        Write-Info "Multica binaries already exist: $serverExe ; $migrateExe ; $cliExe"
         return
     }
 
@@ -77,19 +73,25 @@ function Build-Multica {
 
             Push-Location $serverPath
             try {
-                & $goExe build -o $serverExe ./cmd/server
-                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $serverExe)) {
-                    throw 'automatic Go build fallback failed for server'
+                if (-not (Test-Path $serverExe)) {
+                    & $goExe build -o $serverExe ./cmd/server
+                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $serverExe)) {
+                        throw 'automatic Go build fallback failed for server'
+                    }
                 }
 
-                & $goExe build -o $migrateExe ./cmd/migrate
-                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $migrateExe)) {
-                    throw 'automatic Go build fallback failed for migrate'
+                if (-not (Test-Path $migrateExe)) {
+                    & $goExe build -o $migrateExe ./cmd/migrate
+                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $migrateExe)) {
+                        throw 'automatic Go build fallback failed for migrate'
+                    }
                 }
 
-                & $goExe build -o $cliExe ./cmd/multica
-                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $cliExe)) {
-                    Write-Warn 'automatic Go build fallback failed for multica cli; Multica daemon integration may be unavailable on this platform'
+                if (-not (Test-Path $cliExe)) {
+                    & $goExe build -o $cliExe ./cmd/multica
+                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $cliExe)) {
+                        Write-Warn 'automatic Go build fallback failed for multica cli; Multica daemon integration may be unavailable on this platform'
+                    }
                 }
             }
             finally { Pop-Location }
@@ -200,6 +202,47 @@ function Test-MulticaCliAuthenticated {
     }
     catch {
         return $false
+    }
+}
+
+function Invoke-MulticaCliLogin {
+    $cliExe = Get-MulticaCliBinaryPath
+    if (-not (Test-Path $cliExe)) {
+        Write-Warn 'Multica CLI binary missing; attempting build now'
+        try {
+            Build-Multica
+        }
+        catch {
+            Write-Warn "Multica CLI build attempt failed while preparing login: $($_.Exception.Message)"
+        }
+    }
+    if (-not (Test-Path $cliExe)) {
+        Write-Warn "Multica CLI binary not found: $cliExe"
+        return
+    }
+
+    if (Test-MulticaCliAuthenticated) {
+        Write-Good 'Multica CLI already logged in'
+        return
+    }
+
+    $runtime = Get-MulticaRuntimeSettings
+    $null = & $cliExe config set server-url $runtime.BackendUrl 2>&1
+    $null = & $cliExe config set app-url $runtime.FrontendUrl 2>&1
+
+    Write-Info 'Starting interactive Multica CLI login. Complete the login flow in the browser/terminal prompts.'
+    & $cliExe login
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn 'Multica CLI login did not complete successfully'
+        return
+    }
+
+    if (Test-MulticaCliAuthenticated) {
+        Write-Good 'Multica CLI login completed'
+    }
+    else {
+        Write-Warn 'Multica CLI login finished but no token was detected yet'
     }
 }
 
