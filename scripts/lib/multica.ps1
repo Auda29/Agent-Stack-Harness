@@ -7,6 +7,10 @@ function Get-MulticaBackendBinaryPath {
     Join-Path (Get-MulticaRepoPath) 'server/bin/server.exe'
 }
 
+function Get-MulticaServerPath {
+    Join-Path (Get-MulticaRepoPath) 'server'
+}
+
 function Get-MulticaRuntimeSettings {
     $config = Get-StackConfig
     return [pscustomobject]@{
@@ -43,33 +47,28 @@ function Build-Multica {
     try {
         $makeExe = Resolve-ExecutablePath 'make'
         $goExe = Resolve-ExecutablePath 'go'
+        $serverPath = Get-MulticaServerPath
 
         if ($makeExe) {
             & $makeExe build
             if ($LASTEXITCODE -ne 0) { throw 'make build failed' }
         }
         elseif ($goExe) {
+            if (-not (Test-Path (Join-Path $serverPath 'go.mod'))) {
+                throw "Multica Go module not found: $(Join-Path $serverPath 'go.mod')"
+            }
+
             Write-Warn "make not found; attempting Go build fallback for Multica backend using $goExe"
             Ensure-Dir (Join-Path $repo 'server/bin')
 
-            $candidates = @(
-                './server/cmd/server',
-                './cmd/server',
-                './server'
-            )
-
-            $built = $false
-            foreach ($candidate in $candidates) {
-                & $goExe build -o $serverExe $candidate
-                if ($LASTEXITCODE -eq 0 -and (Test-Path $serverExe)) {
-                    $built = $true
-                    break
+            Push-Location $serverPath
+            try {
+                & $goExe build -o $serverExe ./cmd/server
+                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $serverExe)) {
+                    throw 'automatic Go build fallback failed'
                 }
             }
-
-            if (-not $built) {
-                throw 'automatic Go build fallback failed'
-            }
+            finally { Pop-Location }
         }
         else {
             throw 'neither make nor go is available to build Multica'
