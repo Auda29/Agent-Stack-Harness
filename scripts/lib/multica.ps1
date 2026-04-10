@@ -82,7 +82,17 @@ func setBackgroundSysProcAttr(cmd *exec.Cmd) {
 
     if (Test-Path $authPath) {
         $authContent = Get-Content $authPath -Raw
-        $updatedAuthContent = $authContent.Replace("`tcase \"windows\":`r`n`t`tcmd = \"cmd\"`r`n`t`targs = []string{\"/c\", \"start\", url}", "`tcase \"windows\":`r`n`t`tcmd = \"rundll32\"`r`n`t`targs = []string{\"url.dll,FileProtocolHandler\", url}")
+        $authOld = @'
+	case "windows":
+		cmd = "cmd"
+		args = []string{"/c", "start", url}
+'@
+        $authNew = @'
+	case "windows":
+		cmd = "rundll32"
+		args = []string{"url.dll,FileProtocolHandler", url}
+'@
+        $updatedAuthContent = $authContent.Replace($authOld, $authNew)
         if ($updatedAuthContent -ne $authContent) {
             Set-Content -Path $authPath -Value $updatedAuthContent -Encoding UTF8
         }
