@@ -102,6 +102,7 @@ Then it installs this agent CLI globally via npm:
 And it installs these default pi packages via `pi install`:
 
 - `npm:pi-subagents`
+- `npm:pi-searxng`
 - `npm:pi-mcp-adapter`
 - `npm:pi-lens`
 
@@ -115,7 +116,7 @@ Notes:
 - the script is safe to rerun; it skips tools that are already installed or already on `PATH`
 - you may need to open a **new PowerShell window** after installation so PATH updates are visible
 - pi authentication is still manual: run `pi`, then `/login`, or use provider API keys
-- the prereq script also installs `pi-subagents`, `pi-mcp-adapter`, and `pi-lens` by default
+- the prereq script also installs `pi-subagents`, `pi-searxng`, `pi-mcp-adapter`, and `pi-lens` by default
 
 If you prefer, you can still install everything manually.
 
@@ -178,6 +179,8 @@ Default values are:
 - Multica frontend: `http://localhost:3000`
 - Multica backend health: `http://localhost:8080/health`
 
+The Docker-managed local SearXNG service is still kept in the stack. `pi-searxng` is intended to use that service, not replace it.
+
 ## Notes about pi-coding-agent
 
 This harness assumes pi is your main coding-agent CLI.
@@ -200,6 +203,7 @@ Pi automatically reads `AGENTS.md` files from the current directory and parent d
 The prereq installer also installs these pi packages by default:
 
 - `pi-subagents`
+- `pi-searxng`
 - `pi-mcp-adapter`
 - `pi-lens`
 

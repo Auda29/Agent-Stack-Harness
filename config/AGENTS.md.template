@@ -54,17 +54,50 @@ Default harness-managed endpoints:
 The harness installs these default pi packages:
 
 - `pi-subagents`
+- `pi-searxng`
 - `pi-mcp-adapter`
 - `pi-lens`
 
 Use them when appropriate, but do not assume they replace project-specific instructions.
 
+Default package priorities:
+
+1. Prefer `pi-searxng` first for search and external information gathering.
+2. Prefer `pi-subagents` for larger tasks that benefit from delegation, parallel recon, isolated context, or review passes.
+3. Use `pi-lens` when it helps inspect, navigate, or understand available project/agent context.
+4. Use `pi-mcp-adapter` only when MCP-backed tools or workflows are actually needed for the task.
+
 ### SearXNG
 
-SearXNG is available as a local service for search, but it is not automatically a native pi tool unless explicitly integrated. If you need it:
+SearXNG is available as a local service for search. Prefer the installed `pi-searxng` package when search is needed.
 
-- prefer project instructions or available pi tools/extensions first
-- otherwise use the configured local URL carefully
+Search guidance:
+
+- first prefer `pi-searxng` if it is available and configured
+- treat the Docker-managed local SearXNG service as the expected backend for that integration
+- if the package is unavailable or insufficient, use the configured local URL carefully
+- do not assume public internet search endpoints when the local SearXNG service exists
+
+### Subagent guidance
+
+Prefer `pi-subagents` when:
+
+- the task is broad and benefits from a scout/planner/worker split
+- you need isolated context to avoid polluting the main thread
+- parallel investigation would help
+- you want a review pass before final changes
+
+Do not spawn subagents for trivial edits or quick factual lookups.
+
+### MCP guidance
+
+Prefer `pi-mcp-adapter` only when:
+
+- a required tool is exposed through MCP
+- the repository or user explicitly expects an MCP workflow
+- the needed capability is not already available through built-in tools, local scripts, or the other installed pi packages
+
+Do not route work through MCP by default when simpler local tools are sufficient.
 
 ### Multica
 
@@ -91,7 +124,8 @@ These are local tools managed by the harness. Do not assume a direct pi tool int
 1. Read this file.
 2. Read the project's README and any local docs.
 3. If the task depends on the stack, inspect `config/stack.json` in the harness repo.
-4. If needed, run `scripts/doctor.ps1` from the harness repo.
+4. If search is likely useful, prefer `pi-searxng`.
+5. If needed, run `scripts/doctor.ps1` from the harness repo.
 
 ## Customization
 
@@ -102,4 +136,4 @@ Good things to add later:
 - repo-specific coding conventions
 - preferred test commands
 - deployment notes
-- explicit rules for when to use subagents, MCP, or search
+- explicit rules for when to use subagents, MCP, search, or project-specific tools
