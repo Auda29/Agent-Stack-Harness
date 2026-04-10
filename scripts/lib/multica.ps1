@@ -263,17 +263,46 @@ function Start-MulticaFrontend {
     Start-BackgroundProcess -Name 'multica-frontend' -FilePath 'pnpm.cmd' -Arguments @('exec', 'next', 'dev', '--port', $envMap.FRONTEND_PORT) -WorkingDirectory $webPath -Environment $envMap | Out-Null
 }
 
-function Test-MulticaCliAuthenticated {
+function Get-MulticaCliConfig {
     $configPath = Join-Path $HOME '.multica/config.json'
-    if (-not (Test-Path $configPath)) { return $false }
+    if (-not (Test-Path $configPath)) { return $null }
 
     try {
-        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json -ErrorAction Stop
-        return (-not [string]::IsNullOrWhiteSpace([string]$cfg.Token))
+        return (Get-Content $configPath -Raw | ConvertFrom-Json -ErrorAction Stop)
     }
     catch {
-        return $false
+        return $null
     }
+}
+
+function Test-MulticaCliAuthenticated {
+    $cfg = Get-MulticaCliConfig
+    if (-not $cfg) { return $false }
+    return (-not [string]::IsNullOrWhiteSpace([string]$cfg.Token))
+}
+
+function Test-MulticaCliTargetsCurrentStack {
+    $cfg = Get-MulticaCliConfig
+    if (-not $cfg) { return $false }
+
+    $runtime = Get-MulticaRuntimeSettings
+    return ([string]$cfg.server_url -eq $runtime.BackendUrl -and [string]$cfg.app_url -eq $runtime.FrontendUrl)
+}
+
+function Sync-MulticaCliConfig {
+    $runtime = Get-MulticaRuntimeSettings
+    $cfg = Get-MulticaCliConfig
+    if (-not $cfg) {
+        $cfg = [pscustomobject]@{}
+    }
+
+    $cfg | Add-Member -NotePropertyName server_url -NotePropertyValue $runtime.BackendUrl -Force
+    $cfg | Add-Member -NotePropertyName app_url -NotePropertyValue $runtime.FrontendUrl -Force
+
+    $configDir = Join-Path $HOME '.multica'
+    Ensure-Dir $configDir
+    $configPath = Join-Path $configDir 'config.json'
+    $cfg | ConvertTo-Json -Depth 8 | Set-Content -Path $configPath -Encoding UTF8
 }
 
 function Invoke-MulticaCliLogin {
@@ -292,14 +321,19 @@ function Invoke-MulticaCliLogin {
         return
     }
 
-    if (Test-MulticaCliAuthenticated) {
+    $wasAuthenticated = Test-MulticaCliAuthenticated
+    $targetsCurrentStack = Test-MulticaCliTargetsCurrentStack
+
+    Sync-MulticaCliConfig
+
+    if ($wasAuthenticated -and $targetsCurrentStack) {
         Write-Good 'Multica CLI already logged in'
         return
     }
 
-    $runtime = Get-MulticaRuntimeSettings
-    $null = & $cliExe config set server-url $runtime.BackendUrl 2>&1
-    $null = & $cliExe config set app-url $runtime.FrontendUrl 2>&1
+    if ($wasAuthenticated -and -not $targetsCurrentStack) {
+        Write-Warn 'Multica CLI was logged into a different server/app URL. Re-running login for the local harness stack.'
+    }
 
     Write-Info 'Starting interactive Multica CLI login. Complete the login flow in the browser/terminal prompts.'
     & $cliExe login
@@ -334,20 +368,16 @@ function Start-MulticaDaemon {
     }
 
     if (-not (Test-MulticaCliAuthenticated)) {
-        Write-Warn 'Multica CLI is not logged in yet. Skipping daemon start. Run `multica login` after logging into the web app, then rerun start.ps1.'
+        Write-Warn 'Multica CLI is not logged in yet. Skipping daemon start. Run onboarding.ps1 or `multica login`, then rerun start.ps1.'
         return
     }
 
-    $runtime = Get-MulticaRuntimeSettings
-    $output = & $cliExe config set server-url $runtime.BackendUrl 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warn "Could not update Multica CLI server-url automatically: $((($output | ForEach-Object { [string]$_ }) -join ' ').Trim())"
+    if (-not (Test-MulticaCliTargetsCurrentStack)) {
+        Write-Warn 'Multica CLI is logged into a different server/app URL. Run onboarding.ps1 to log the CLI into the local harness stack before starting the daemon.'
+        return
     }
 
-    $output = & $cliExe config set app-url $runtime.FrontendUrl 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warn "Could not update Multica CLI app-url automatically: $((($output | ForEach-Object { [string]$_ }) -join ' ').Trim())"
-    }
+    Sync-MulticaCliConfig
 
     $output = & $cliExe daemon start 2>&1
     $text = (($output | ForEach-Object { [string]$_ }) -join "`n").Trim()
