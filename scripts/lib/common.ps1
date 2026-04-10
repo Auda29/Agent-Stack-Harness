@@ -60,10 +60,10 @@ function Invoke-Step([string]$Name, [scriptblock]$Script) {
     }
 }
 
-function Test-TcpPort([string]$Host, [int]$Port) {
+function Test-TcpPort([string]$Address, [int]$Port) {
     try {
         $client = New-Object System.Net.Sockets.TcpClient
-        $async = $client.BeginConnect($Host, $Port, $null, $null)
+        $async = $client.BeginConnect($Address, $Port, $null, $null)
         $wait = $async.AsyncWaitHandle.WaitOne(1500, $false)
         if (-not $wait) { $client.Close(); return $false }
         $client.EndConnect($async)
