@@ -28,5 +28,5 @@ Write-Good 'Browser tabs opened'
 
 if ($config.projectPath) {
     Write-Info "Saved project path: $($config.projectPath)"
-    Write-Info 'Open a terminal there and start `claude` or `codex`.'
+    Write-Info 'Open a terminal there and start `pi`.'
 }

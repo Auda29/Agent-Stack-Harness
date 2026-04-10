@@ -4,15 +4,14 @@ This harness is a **starter scaffold** for the stack:
 
 - Multica
 - agentchattr
-- Claude Code
-- Codex CLI
+- pi-coding-agent
 - SearXNG
 - MemPalace
 
 It is designed for a **Windows laptop** with a **hybrid setup**:
 
 - **Docker** for infrastructure (`postgres`, `searxng`)
-- **Local Windows processes** for agent-facing tools (`multica`, `agentchattr`, `claude`, `codex`, `mempalace`)
+- **Local Windows processes** for agent-facing tools (`multica`, `agentchattr`, `pi`, `mempalace`)
 
 ## What this harness does
 
@@ -29,8 +28,7 @@ It gives you six scripts:
 
 This harness **cannot fully automate** these parts:
 
-- Claude Code login
-- Codex CLI login
+- pi login / provider authentication
 - Multica Resend configuration
 - Multica build edge cases on Windows
 - MemPalace hook quirks on Windows
@@ -47,8 +45,7 @@ A single `requirements.txt` is not enough for this repo because the prerequisite
 - Node.js / npm
 - pnpm
 - Go
-- Claude Code
-- Codex CLI
+- pi-coding-agent
 
 So this repo uses a Windows bootstrap script (`scripts/install-prereqs.ps1`) instead of pretending everything can be expressed as Python dependencies.
 
@@ -97,7 +94,16 @@ This installs the core prerequisites via `winget`:
 - Node.js
 - pnpm
 - Go
-- Codex CLI
+
+Then it installs this agent CLI globally via npm:
+
+- `@mariozechner/pi-coding-agent`
+
+And it installs these default pi packages via `pi install`:
+
+- `npm:pi-subagents`
+- `npm:pi-mcp-adapter`
+- `npm:pi-lens`
 
 Optional:
 
@@ -107,8 +113,9 @@ Optional:
 
 Notes:
 - the script is safe to rerun; it skips tools that are already installed or already on `PATH`
-- `Claude Code` may still need manual installation depending on your machine / winget availability
 - you may need to open a **new PowerShell window** after installation so PATH updates are visible
+- pi authentication is still manual: run `pi`, then `/login`, or use provider API keys
+- the prereq script also installs `pi-subagents`, `pi-mcp-adapter`, and `pi-lens` by default
 
 If you prefer, you can still install everything manually.
 
@@ -167,6 +174,29 @@ Default values are:
 - SearXNG: `http://localhost:8888`
 - Multica frontend: `http://localhost:3000`
 - Multica backend health: `http://localhost:8080/health`
+
+## Notes about pi-coding-agent
+
+This harness assumes pi is your main coding-agent CLI.
+
+Use pi like this after installation:
+
+```powershell
+pi
+```
+
+Then either:
+
+- run `/login` and select a supported provider/subscription
+- or configure provider API keys in your environment
+
+Pi also supports RPC mode and an SDK, but this harness currently uses pi simply as the user-facing coding-agent CLI.
+
+The prereq installer also installs these pi packages by default:
+
+- `pi-subagents`
+- `pi-mcp-adapter`
+- `pi-lens`
 
 ## Notes about Multica
 

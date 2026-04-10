@@ -5,7 +5,7 @@
 $config = Get-StackConfig
 
 Write-Section 'CLI tools'
-foreach ($cmd in @('git','python','node','pnpm','go','docker','claude','codex')) {
+foreach ($cmd in @('git','python','node','pnpm','go','docker','pi')) {
     if (Test-CommandExists $cmd) { Write-Good "$cmd found" } else { Write-Warn "$cmd missing" }
 }
 

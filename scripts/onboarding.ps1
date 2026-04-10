@@ -23,7 +23,7 @@ if (-not (Test-MulticaEnvComplete)) {
 }
 
 Write-Info 'Next manual actions:'
-Write-Host '  1) Log into Claude Code: run `claude` once' -ForegroundColor White
-Write-Host '  2) Log into Codex CLI: run `codex` once' -ForegroundColor White
+Write-Host '  1) Start pi: run `pi`' -ForegroundColor White
+Write-Host '  2) Inside pi, run `/login` and select your provider, or configure provider API keys' -ForegroundColor White
 Write-Host '  3) Verify Multica build succeeded during install; rebuild manually only if needed' -ForegroundColor White
 Write-Host '  4) Then run start.ps1' -ForegroundColor White

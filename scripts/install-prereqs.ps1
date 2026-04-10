@@ -13,8 +13,10 @@ $packages = @(
     @{ Id = 'GoLang.Go'; Name = 'Go'; Source = 'winget'; Command = 'go' }
 )
 
-$optionalPackages = @(
-    @{ Id = 'Anthropic.Claude'; Name = 'Claude'; Source = 'winget'; Command = 'claude' }
+$piPackages = @(
+    @{ Source = 'npm:pi-subagents'; Name = 'pi-subagents' },
+    @{ Source = 'npm:pi-mcp-adapter'; Name = 'pi-mcp-adapter' },
+    @{ Source = 'npm:pi-lens'; Name = 'pi-lens' }
 )
 
 function Write-Section([string]$Text) {
@@ -65,6 +67,29 @@ function Install-WingetPackage([hashtable]$Package) {
     }
 }
 
+function Test-PiPackageInstalled([hashtable]$Package) {
+    try {
+        $output = & pi list 2>$null
+        return ($LASTEXITCODE -eq 0 -and (($output | Out-String) -match [regex]::Escape($Package.Source)))
+    }
+    catch {
+        return $false
+    }
+}
+
+function Install-PiPackage([hashtable]$Package) {
+    if (Test-PiPackageInstalled $Package) {
+        Write-Good "$($Package.Name) already installed in pi"
+        return
+    }
+
+    Write-Info "Installing pi package $($Package.Source)"
+    & pi install $Package.Source
+    if ($LASTEXITCODE -ne 0) {
+        throw "pi install failed for $($Package.Source)"
+    }
+}
+
 Write-Section 'Check winget'
 if (-not (Test-CommandExists 'winget')) {
     throw 'winget not found. Install App Installer from Microsoft Store or use manual setup.'
@@ -79,31 +104,33 @@ foreach ($package in $packages) {
 Write-Section 'Post-install npm globals'
 if (-not (Test-CommandExists 'npm')) {
     Write-Warn 'npm not found after Node.js install. Open a new shell and run this script again if needed.'
-} elseif (Test-CommandExists 'codex') {
-    Write-Good 'Codex CLI already available in PATH'
+} elseif (Test-CommandExists 'pi') {
+    Write-Good 'pi-coding-agent already available in PATH'
 } else {
-    Write-Info 'Installing Codex CLI globally via npm'
-    & npm install -g @openai/codex
+    Write-Info 'Installing pi-coding-agent globally via npm'
+    & npm install -g @mariozechner/pi-coding-agent
     if ($LASTEXITCODE -ne 0) {
-        throw 'npm install -g @openai/codex failed'
+        throw 'npm install -g @mariozechner/pi-coding-agent failed'
     }
-    Write-Good 'Installed Codex CLI'
+    Write-Good 'Installed pi-coding-agent'
+}
+
+Write-Section 'Install default pi packages'
+if (-not (Test-CommandExists 'pi')) {
+    Write-Warn 'pi not found after install. Open a new shell and run this script again if needed.'
+} else {
+    foreach ($package in $piPackages) {
+        Install-PiPackage $package
+    }
 }
 
 if ($IncludeOptionalTools) {
-    Write-Section 'Install optional GUI tools'
-    foreach ($package in $optionalPackages) {
-        try {
-            Install-WingetPackage $package
-        }
-        catch {
-            Write-Warn "Optional install failed for $($package.Name): $($_.Exception.Message)"
-        }
-    }
+    Write-Section 'Optional tools'
+    Write-Info 'No optional GUI tools are configured right now.'
 }
 
 Write-Section 'Manual follow-up'
 Write-Host 'Some tools may require a new terminal session before they appear in PATH.' -ForegroundColor White
-Write-Host 'You still need to log into Claude Code and Codex CLI manually.' -ForegroundColor White
-Write-Host 'If Claude Code is not available via winget on your machine, install it manually.' -ForegroundColor White
+Write-Host 'You still need to log into pi manually: run `pi`, then `/login` or use provider API keys.' -ForegroundColor White
+Write-Host 'Default pi packages are also installed: pi-subagents, pi-mcp-adapter, pi-lens.' -ForegroundColor White
 Write-Host 'Next step: run .\scripts\install.ps1' -ForegroundColor White
