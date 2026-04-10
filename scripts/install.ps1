@@ -1,5 +1,6 @@
 param(
-    [string]$ProjectPath = ''
+    [string]$ProjectPath = '',
+    [switch]$IncludeMultica
 )
 
 . (Join-Path $PSScriptRoot 'lib/common.ps1')
@@ -50,8 +51,12 @@ Invoke-Step 'Clone or update repositories' {
     }
 }
 
-Invoke-Step 'Write Multica env' {
-    Initialize-MulticaEnv
+if ($IncludeMultica) {
+    Invoke-Step 'Write Multica env' {
+        Initialize-MulticaEnv
+    }
+} else {
+    Write-Info 'Skipping Multica env setup (use -IncludeMultica to enable)'
 }
 
 Invoke-Step 'Start docker infrastructure' {
@@ -66,16 +71,20 @@ Invoke-Step 'Install MemPalace editable environment' {
     Install-MemPalace
 }
 
-Invoke-Step 'Install Multica dependencies' {
-    Install-MulticaDependencies
-}
+if ($IncludeMultica) {
+    Invoke-Step 'Install Multica dependencies' {
+        Install-MulticaDependencies
+    }
 
-Invoke-Step 'Build Multica backend' {
-    Build-Multica
-}
+    Invoke-Step 'Build Multica backend' {
+        Build-Multica
+    }
 
-Invoke-Step 'Run Multica migrations' {
-    Invoke-MulticaMigrations
+    Invoke-Step 'Run Multica migrations' {
+        Invoke-MulticaMigrations
+    }
+} else {
+    Write-Info 'Skipping Multica install/build/migrations (use -IncludeMultica to enable)'
 }
 
 Invoke-Step 'Configure pi-searxng' {

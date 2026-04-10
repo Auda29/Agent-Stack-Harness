@@ -2,7 +2,8 @@ param(
     [string]$ProjectPath = '',
     [switch]$IncludeOptionalTools,
     [switch]$SkipPrereqs,
-    [switch]$SkipStart
+    [switch]$SkipStart,
+    [switch]$IncludeMultica
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,24 +25,35 @@ if (-not $SkipPrereqs) {
 }
 
 Write-Section 'Quick install: stack install'
+$installArgs = @()
 if ($ProjectPath) {
-    & (Join-Path $scriptRoot 'install.ps1') -ProjectPath $ProjectPath
-} else {
-    & (Join-Path $scriptRoot 'install.ps1')
+    $installArgs += @('-ProjectPath', $ProjectPath)
 }
+if ($IncludeMultica) {
+    $installArgs += '-IncludeMultica'
+}
+& (Join-Path $scriptRoot 'install.ps1') @installArgs
 if ($LASTEXITCODE -ne 0) {
     throw 'install.ps1 failed'
 }
 
 Write-Section 'Quick install: onboarding'
-& (Join-Path $scriptRoot 'onboarding.ps1')
+$onboardingArgs = @()
+if ($IncludeMultica) {
+    $onboardingArgs += '-IncludeMultica'
+}
+& (Join-Path $scriptRoot 'onboarding.ps1') @onboardingArgs
 if ($LASTEXITCODE -ne 0) {
     throw 'onboarding.ps1 failed'
 }
 
 if (-not $SkipStart) {
     Write-Section 'Quick install: start'
-    & (Join-Path $scriptRoot 'start.ps1')
+    $startArgs = @()
+    if ($IncludeMultica) {
+        $startArgs += '-IncludeMultica'
+    }
+    & (Join-Path $scriptRoot 'start.ps1') @startArgs
     if ($LASTEXITCODE -ne 0) {
         throw 'start.ps1 failed'
     }

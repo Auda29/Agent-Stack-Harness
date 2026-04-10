@@ -1,3 +1,7 @@
+param(
+    [switch]$IncludeMultica
+)
+
 . (Join-Path $PSScriptRoot 'lib/common.ps1')
 . (Join-Path $PSScriptRoot 'lib/docker.ps1')
 . (Join-Path $PSScriptRoot 'lib/env.ps1')
@@ -24,24 +28,37 @@ foreach ($cmd in @('git','python','node','pnpm','go','docker','pi')) {
 }
 
 Write-Section 'Ports'
-foreach ($pair in @(
+$portsToCheck = @(
     @{ Name='Postgres'; Port=$config.ports.postgres },
-    @{ Name='SearXNG'; Port=$config.ports.searxng },
-    @{ Name='Multica backend'; Port=$config.ports.multicaBackend },
-    @{ Name='Multica frontend'; Port=$config.ports.multicaFrontend }
-)) {
+    @{ Name='SearXNG'; Port=$config.ports.searxng }
+)
+if ($IncludeMultica) {
+    $portsToCheck += @(
+        @{ Name='Multica backend'; Port=$config.ports.multicaBackend },
+        @{ Name='Multica frontend'; Port=$config.ports.multicaFrontend }
+    )
+}
+foreach ($pair in $portsToCheck) {
     if (Test-TcpPort '127.0.0.1' $pair.Port) { Write-Good "$($pair.Name) listening on $($pair.Port)" } else { Write-Warn "$($pair.Name) not listening on $($pair.Port)" }
 }
 
 Write-Section 'HTTP health'
-foreach ($u in @($config.urls.searxng, $config.urls.multicaBackendHealth, $config.urls.multicaFrontend)) {
+$urlsToCheck = @($config.urls.searxng)
+if ($IncludeMultica) {
+    $urlsToCheck += @($config.urls.multicaBackendHealth, $config.urls.multicaFrontend)
+}
+foreach ($u in $urlsToCheck) {
     if (Test-HttpOk $u) { Write-Good "$u reachable" } else { Write-Warn "$u not reachable" }
 }
 
 Write-Section 'Config state'
-$multicaEnv = Join-Path (Get-HarnessRoot) 'repos/multica/.env'
-if (Test-Path $multicaEnv) { Write-Good 'Multica .env exists' } else { Write-Warn 'Multica .env missing' }
-if (Test-MulticaEnvComplete) { Write-Good 'Multica Resend settings appear filled' } else { Write-Warn 'Multica Resend settings incomplete' }
+if ($IncludeMultica) {
+    $multicaEnv = Join-Path (Get-HarnessRoot) 'repos/multica/.env'
+    if (Test-Path $multicaEnv) { Write-Good 'Multica .env exists' } else { Write-Warn 'Multica .env missing' }
+    if (Test-MulticaEnvComplete) { Write-Good 'Multica Resend settings appear filled' } else { Write-Warn 'Multica Resend settings incomplete' }
+} else {
+    Write-Info 'Skipping Multica config checks (use -IncludeMultica to enable)'
+}
 
 $piSearxngConfig = Join-Path (Get-PiRoot) 'searxng.json'
 if (Test-Path $piSearxngConfig) { Write-Good 'pi-searxng config exists' } else { Write-Warn 'pi-searxng config missing' }

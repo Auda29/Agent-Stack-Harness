@@ -2,11 +2,11 @@
 
 This harness is a **starter scaffold** for the stack:
 
-- Multica
-- agentchattr
 - pi-coding-agent
 - SearXNG
 - MemPalace
+- agentchattr
+- Multica (optional)
 
 It is designed for a **Windows laptop** with a **hybrid setup**:
 
@@ -39,12 +39,18 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\start.ps1
 ```
 
+If you want to include Multica as well, pass `-IncludeMultica` to those scripts:
+
+```powershell
+.\scripts\quickinstall.ps1 -ProjectPath "C:\Path\To\Your\Project" -IncludeMultica
+```
+
 Then:
 
 - open your target project folder
 - run `pi`
 - run `/login` inside pi
-- if Multica email login is in dev mode without `RESEND_API_KEY`, read the verification code from `data/logs/multica-backend*.out.log`
+- if you explicitly enabled Multica and its email login is in dev mode without `RESEND_API_KEY`, read the verification code from `data/logs/multica-backend*.out.log`
 
 ## What this harness does
 
@@ -59,6 +65,8 @@ It gives you seven scripts:
 - `scripts/doctor.ps1` — diagnostics
 
 These scripts are for stack lifecycle and bootstrap. They are not intended to be the primary runtime API for every stack component.
+
+By default, the main flow is now Pi-first. Multica is available only when explicitly enabled.
 
 ## Important limitations
 
@@ -173,12 +181,11 @@ Install does all of this:
 
 - prepares local folders
 - clones or updates the dependent repos
-- creates or updates `repos/multica/.env`
 - starts Docker infrastructure
-- installs Python/Node dependencies
-- attempts to build the Multica backend binary
+- installs Python/Node dependencies for the non-Multica tools
 - writes `~/.pi/searxng.json` for `pi-searxng`
 - if `-ProjectPath` is provided, bootstraps `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json` into that project repo
+- if `-IncludeMultica` is passed, also creates `repos/multica/.env`, installs Multica dependencies, builds Multica, and runs Multica migrations
 
 ## 3) Run onboarding
 
@@ -190,18 +197,36 @@ Then complete the manual login/config steps.
 
 If a project path was saved, onboarding also refreshes the starter `AGENTS.md`, `.pi/settings.json`, and `.pi/mcp.json` in that project.
 
+If you want Multica onboarding too, run:
+
+```powershell
+.\scripts\onboarding.ps1 -IncludeMultica
+```
+
 ## 4) Start the stack
 
 ```powershell
 .\scripts\start.ps1
 ```
 
-If you have already logged into the Multica CLI, `start.ps1` also attempts to start the local Multica daemon so your runtimes appear in the Multica UI. If the CLI is not logged in yet, the harness prints a warning and skips daemon startup.
+This starts the Pi-first local stack.
+
+If you also want Multica services and daemon startup, run:
+
+```powershell
+.\scripts\start.ps1 -IncludeMultica
+```
 
 ## 5) Diagnose problems
 
 ```powershell
 .\scripts\doctor.ps1
+```
+
+To include Multica diagnostics too:
+
+```powershell
+.\scripts\doctor.ps1 -IncludeMultica
 ```
 
 If Docker image pulls fail with authentication errors, try:
