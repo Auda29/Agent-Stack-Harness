@@ -57,15 +57,16 @@ if ($IncludeMultica) {
 Write-Info 'Next manual actions:'
 Write-Host '  1) Start pi: run `pi`' -ForegroundColor White
 Write-Host '  2) Inside pi, run `/login` and select your provider, or configure provider API keys' -ForegroundColor White
-Write-Host '  3) Restart pi after package/config changes so pi-searxng and pi-mcp-adapter pick them up' -ForegroundColor White
-Write-Host '  4) Review and customize the generated AGENTS.md and .pi config files in your project repo if needed' -ForegroundColor White
+Write-Host '  3) If Pi shows `MCP: 0/1 servers`, open `/mcp`, enable/select `mempalace`, then restart pi so direct tools are applied' -ForegroundColor White
+Write-Host '  4) Restart pi after package/config changes so pi-searxng and pi-mcp-adapter pick them up' -ForegroundColor White
+Write-Host '  5) Review and customize the generated AGENTS.md and .pi config files in your project repo if needed' -ForegroundColor White
 if ($config.projectPath) {
-    Write-Host "  5) Recommended next MemPalace step: mempalace mine `"$($config.projectPath)`"" -ForegroundColor White
+    Write-Host "  6) Recommended next MemPalace step: mempalace mine `"$($config.projectPath)`"" -ForegroundColor White
     Write-Host '     Use this when you want MemPalace to ingest the project files into memory.' -ForegroundColor DarkGray
-    Write-Host '  6) Then run start.ps1' -ForegroundColor White
+    Write-Host '  7) Then run start.ps1' -ForegroundColor White
 } else {
-    Write-Host '  5) Then run start.ps1' -ForegroundColor White
+    Write-Host '  6) Then run start.ps1' -ForegroundColor White
 }
 if ($IncludeMultica) {
-    Write-Host '  7) Multica runtimes appear only after the Multica daemon is running; if none appear, check whether `multica daemon start` succeeded on your machine' -ForegroundColor White
+    Write-Host '  8) Multica runtimes appear only after the Multica daemon is running; if none appear, check whether `multica daemon start` succeeded on your machine' -ForegroundColor White
 }
