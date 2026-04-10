@@ -13,10 +13,44 @@ It is designed for a **Windows laptop** with a **hybrid setup**:
 - **Docker** for infrastructure (`postgres`, `searxng`)
 - **Local Windows processes** for agent-facing tools (`multica`, `agentchattr`, `pi`, `mempalace`)
 
+## Quickstart
+
+For the fastest first local setup on Windows:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\quickinstall.ps1 -ProjectPath "C:\Path\To\Your\Project"
+```
+
+This runs, in order:
+
+- `scripts/install-prereqs.ps1`
+- `scripts/install.ps1`
+- `scripts/onboarding.ps1`
+- `scripts/start.ps1`
+
+If you prefer to run the steps manually:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install-prereqs.ps1
+.\scripts\install.ps1 -ProjectPath "C:\Path\To\Your\Project"
+.\scripts\onboarding.ps1
+.\scripts\start.ps1
+```
+
+Then:
+
+- open your target project folder
+- run `pi`
+- run `/login` inside pi
+- if Multica email login is in dev mode without `RESEND_API_KEY`, read the verification code from `data/logs/multica-backend*.out.log`
+
 ## What this harness does
 
-It gives you six scripts:
+It gives you seven scripts:
 
+- `scripts/quickinstall.ps1` — one-shot first-time setup wrapper
 - `scripts/install-prereqs.ps1` — installs Windows prerequisites via `winget`
 - `scripts/install.ps1` — first-time setup
 - `scripts/onboarding.ps1` — guided manual steps

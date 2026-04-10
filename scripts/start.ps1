@@ -23,8 +23,8 @@ Invoke-Step 'Start agentchattr' {
 
 Write-Section 'Open URLs'
 Start-Process $config.urls.multicaFrontend
-Start-Process $config.urls.searxng
-Write-Good 'Browser tabs opened'
+Write-Good 'Opened Multica frontend in browser'
+Write-Info "SearXNG is running at $($config.urls.searxng) for agent/tool use; it is not opened automatically."
 
 if ($config.projectPath) {
     Write-Info "Saved project path: $($config.projectPath)"
