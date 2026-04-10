@@ -6,7 +6,16 @@ $config = Get-StackConfig
 
 Write-Section 'CLI tools'
 foreach ($cmd in @('git','python','node','pnpm','go','docker','pi')) {
-    if (Test-CommandExists $cmd) { Write-Good "$cmd found" } else { Write-Warn "$cmd missing" }
+    if (Test-CommandExists $cmd) {
+        Write-Good "$cmd found"
+    } else {
+        $hint = Get-CommandPathHint $cmd
+        if ($hint) {
+            Write-Warn "$cmd missing in current PowerShell command resolution, but where.exe found: $hint"
+        } else {
+            Write-Warn "$cmd missing"
+        }
+    }
 }
 
 Write-Section 'Ports'
@@ -41,6 +50,11 @@ if ($config.projectPath) {
     if (Test-Path $projectSettings) { Write-Good 'Project .pi/settings.json exists' } else { Write-Warn 'Project .pi/settings.json missing' }
     if (Test-Path $projectMcp) { Write-Good 'Project .pi/mcp.json exists' } else { Write-Warn 'Project .pi/mcp.json missing' }
     if (Test-Path $projectAgents) { Write-Good 'Project AGENTS.md exists' } else { Write-Warn 'Project AGENTS.md missing' }
+}
+
+Write-Section 'Docker image pulls'
+foreach ($image in @('searxng/searxng:latest','pgvector/pgvector:pg17')) {
+    if (Test-DockerImagePull $image) { Write-Good "$image pull ok" } else { Write-Warn "$image pull failed (check docker login / registry access)" }
 }
 
 Write-Section 'Docker containers'

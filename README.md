@@ -168,6 +168,15 @@ If a project path was saved, onboarding also refreshes the starter `AGENTS.md`, 
 .\scripts\doctor.ps1
 ```
 
+If Docker image pulls fail with authentication errors, try:
+
+```powershell
+docker logout
+docker login
+docker pull searxng/searxng:latest
+docker pull pgvector/pgvector:pg17
+```
+
 ## 6) Stop the stack
 
 ```powershell

@@ -24,13 +24,60 @@ function Get-DockerComposeArgs {
     return @('compose', '-p', $config.dockerProjectName, '-f', (Join-Path $root 'docker-compose.yml'))
 }
 
+function Invoke-DockerCommand([string[]]$Arguments) {
+    $output = & docker @Arguments 2>&1
+    return [pscustomobject]@{
+        ExitCode = $LASTEXITCODE
+        Output = (($output | ForEach-Object { [string]$_ }) -join "`n")
+    }
+}
+
+function Get-DockerAuthHelpMessage {
+    @(
+        'Docker image pull failed due to an authentication problem.'
+        'Try:'
+        '  docker logout'
+        '  docker login'
+        '  docker pull searxng/searxng:latest'
+        '  docker pull pgvector/pgvector:pg17'
+        'Then rerun scripts/install.ps1'
+    ) -join "`n"
+}
+
+function Assert-DockerCommandSucceeded([object]$Result, [string]$Context) {
+    if ($Result.ExitCode -eq 0) { return }
+
+    $output = $Result.Output
+    if ($output) { Write-Host $output }
+
+    if ($output -match 'authentication required' -or
+        $output -match 'incorrect username or password' -or
+        $output -match 'unauthorized' -or
+        $output -match 'denied: requested access to the resource is denied') {
+        throw "$Context`n`n$(Get-DockerAuthHelpMessage)"
+    }
+
+    throw $Context
+}
+
+function Test-DockerImagePull([string]$Image) {
+    if (-not (Test-DockerAvailable)) { return $false }
+    try {
+        $result = Invoke-DockerCommand @('pull', $Image)
+        return ($result.ExitCode -eq 0)
+    }
+    catch {
+        return $false
+    }
+}
+
 function Start-Infrastructure {
     if (-not (Test-DockerAvailable)) { throw 'docker not found in PATH' }
     Sync-DockerComposeEnv
     Push-Location (Get-HarnessRoot)
     try {
-        & docker @((Get-DockerComposeArgs) + @('up', '-d'))
-        if ($LASTEXITCODE -ne 0) { throw 'docker compose up failed' }
+        $result = Invoke-DockerCommand ((Get-DockerComposeArgs) + @('up', '-d'))
+        Assert-DockerCommandSucceeded $result 'docker compose up failed'
     }
     finally { Pop-Location }
 }
@@ -40,8 +87,8 @@ function Stop-Infrastructure {
     Sync-DockerComposeEnv
     Push-Location (Get-HarnessRoot)
     try {
-        & docker @((Get-DockerComposeArgs) + @('down'))
-        if ($LASTEXITCODE -ne 0) { throw 'docker compose down failed' }
+        $result = Invoke-DockerCommand ((Get-DockerComposeArgs) + @('down'))
+        Assert-DockerCommandSucceeded $result 'docker compose down failed'
     }
     finally { Pop-Location }
 }

@@ -182,6 +182,18 @@ function Test-CommandExists([string]$Name) {
     $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Get-CommandPathHint([string]$Name) {
+    try {
+        $paths = & where.exe $Name 2>$null
+        $joined = (($paths | ForEach-Object { [string]$_ }) -join '; ').Trim()
+        if ([string]::IsNullOrWhiteSpace($joined)) { return $null }
+        return $joined
+    }
+    catch {
+        return $null
+    }
+}
+
 function Ensure-Dir([string]$Path) {
     if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path | Out-Null }
 }
