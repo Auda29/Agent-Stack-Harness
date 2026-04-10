@@ -190,7 +190,7 @@ If a project path was saved, onboarding also:
 - runs `mempalace init <project> --yes`
 - verifies MemPalace with `mempalace status`
 
-On first Pi startup, if MemPalace does not connect immediately and Pi shows `MCP: 0/1 servers`, open `/mcp`, enable/select `mempalace`, and restart Pi once so the direct tools are applied.
+The harness now writes MemPalace with `lifecycle: eager` in `.pi/mcp.json` so Pi should connect it on startup instead of waiting for first use.
 
 Recommended next memory step after onboarding:
 
@@ -337,10 +337,11 @@ At runtime, MemPalace should ideally be used through its native MCP integration 
 If you pass `-ProjectPath`, the harness now also:
 
 - bootstraps `.pi/mcp.json` with a `mempalace` MCP server entry
+- sets that MemPalace server to `lifecycle: eager`
 - runs `mempalace init <project> --yes` during onboarding
 - checks `mempalace status`
 
-If Pi initially still shows `MCP: 0/1 servers`, use `/mcp` inside Pi to enable/select `mempalace`, then restart Pi once.
+If Pi still shows `MCP: 0/1 servers`, use `/mcp` inside Pi to enable/select `mempalace`, then restart Pi once.
 
 Recommended next step when you actually want to ingest project knowledge:
 

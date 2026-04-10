@@ -124,7 +124,7 @@ function Initialize-ProjectMcpConfig([string]$ProjectPath) {
     $serverConfig = [pscustomobject]@{
         command = $pythonExe
         args = @('-m', 'mempalace.mcp_server')
-        lifecycle = 'lazy'
+        lifecycle = 'eager'
         idleTimeout = 10
     }
 
