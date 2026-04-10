@@ -297,6 +297,7 @@ function Start-BackgroundProcess {
     $stderrFile = Join-Path $logDir "$Name.err.log"
     $pidFile = Get-ManagedProcessIdPath $Name
     $wrapperFile = Join-Path $runDir "$Name.ps1"
+    $logSuffix = (Get-Date).ToString('yyyyMMdd-HHmmss')
 
     $escapedWorkingDirectory = $WorkingDirectory.Replace("'", "''")
     $escapedFilePath = $FilePath.Replace("'", "''")
@@ -328,8 +329,26 @@ function Start-BackgroundProcess {
     ) -join "`r`n"
 
     Set-Content -Path $wrapperFile -Value $wrapperContent -Encoding UTF8
-    if (Test-Path $stdoutFile) { Remove-Item $stdoutFile -Force }
-    if (Test-Path $stderrFile) { Remove-Item $stderrFile -Force }
+
+    if (Test-Path $stdoutFile) {
+        try {
+            Remove-Item $stdoutFile -Force -ErrorAction Stop
+        }
+        catch {
+            $stdoutFile = Join-Path $logDir "$Name.$logSuffix.out.log"
+            Write-Warn "Could not rotate locked stdout log for $Name; using $stdoutFile"
+        }
+    }
+
+    if (Test-Path $stderrFile) {
+        try {
+            Remove-Item $stderrFile -Force -ErrorAction Stop
+        }
+        catch {
+            $stderrFile = Join-Path $logDir "$Name.$logSuffix.err.log"
+            Write-Warn "Could not rotate locked stderr log for $Name; using $stderrFile"
+        }
+    }
 
     $proc = Start-Process -FilePath 'powershell.exe' `
         -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrapperFile) `
@@ -346,6 +365,8 @@ function Start-BackgroundProcess {
         Name = $Name
         FilePath = $FilePath
         WorkingDirectory = $WorkingDirectory
+        StdoutPath = $stdoutFile
+        StderrPath = $stderrFile
         StartTimeUtc = if ($startedProc) { $startedProc.StartTime.ToUniversalTime().ToString('o') } else { $null }
     }
 
