@@ -245,6 +245,11 @@ function Ensure-Dir([string]$Path) {
     if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path | Out-Null }
 }
 
+function Write-TextUtf8NoBom([string]$Path, [string]$Content) {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
 function Invoke-Step([string]$Name, [scriptblock]$Script) {
     Write-Section $Name
     try {

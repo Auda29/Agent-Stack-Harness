@@ -51,14 +51,33 @@ function Test-WingetPackageInstalled([hashtable]$Package) {
     }
 }
 
+function Test-Python311Available {
+    try {
+        $output = & py -3.11 --version 2>&1
+        return ($LASTEXITCODE -eq 0 -and (($output | Out-String) -match 'Python\s+3\.11(\.|\s|$)'))
+    }
+    catch {
+        return $false
+    }
+}
+
 function Install-WingetPackage([hashtable]$Package) {
-    if ($Package.Command -and (Test-CommandExists $Package.Command)) {
+    if ($Package.Id -eq 'Python.Python.3.11') {
+        if (Test-Python311Available) {
+            Write-Good "$($Package.Name) available via py -3.11"
+            return
+        }
+    } elseif ($Package.Command -and (Test-CommandExists $Package.Command)) {
         Write-Good "$($Package.Name) already available in PATH"
         return
     }
 
     if (Test-WingetPackageInstalled $Package) {
-        Write-Info "$($Package.Name) is already installed via winget"
+        if ($Package.Id -eq 'Python.Python.3.11') {
+            Write-Warn "$($Package.Name) appears installed via winget, but py -3.11 is not available in this shell yet"
+        } else {
+            Write-Info "$($Package.Name) is already installed via winget"
+        }
         return
     }
 
@@ -135,4 +154,10 @@ Write-Section 'Manual follow-up'
 Write-Host 'Some tools may require a new terminal session before they appear in PATH.' -ForegroundColor White
 Write-Host 'You still need to log into pi manually: run `pi`, then `/login` or use provider API keys.' -ForegroundColor White
 Write-Host 'Default pi packages are also installed: pi-subagents, pi-searxng, pi-mcp-adapter, pi-lens, pi-tasks.' -ForegroundColor White
+if (Test-Python311Available) {
+    Write-Host 'MemPalace Python check: py -3.11 is available.' -ForegroundColor White
+} else {
+    Write-Host 'MemPalace Python check FAILED: py -3.11 is not available in this shell.' -ForegroundColor Yellow
+    Write-Host 'Open a new terminal or install Python 3.11, then verify with: py -3.11 --version' -ForegroundColor Yellow
+}
 Write-Host 'Next step: run .\scripts\install.ps1' -ForegroundColor White
