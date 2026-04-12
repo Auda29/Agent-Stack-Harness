@@ -29,6 +29,10 @@ Invoke-Step 'Start agentchattr' {
     Start-Agentchattr
 }
 
+Invoke-Step 'Start pi-agentchattr worker' {
+    Start-PiAgentchattrWorker
+}
+
 if ($IncludeMultica) {
     Invoke-Step 'Start Multica daemon' {
         Start-MulticaDaemon
@@ -48,5 +52,5 @@ Write-Info "SearXNG is running at $($config.urls.searxng) for agent/tool use; it
 
 if ($config.projectPath) {
     Write-Info "Saved project path: $($config.projectPath)"
-    Write-Info 'Open a terminal there and start `pi`.'
+    Write-Info 'Pi worker is using this project path for agentchattr-triggered requests.'
 }

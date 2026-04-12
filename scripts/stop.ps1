@@ -19,6 +19,10 @@ if ($IncludeMultica) {
     Write-Info 'Skipping Multica shutdown (use -IncludeMultica to enable)'
 }
 
+Invoke-Step 'Stop pi-agentchattr worker' {
+    Stop-PiAgentchattrWorker
+}
+
 Invoke-Step 'Stop agentchattr' {
     Stop-Agentchattr
 }

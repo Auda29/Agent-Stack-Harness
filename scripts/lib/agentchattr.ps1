@@ -38,6 +38,10 @@ function Sync-AgentchattrConfig {
     $content = Set-TomlSectionKeyValue $content 'server' 'port' ([string]$uiUri.Port)
     $content = Set-TomlSectionKeyValue $content 'mcp' 'http_port' ([string]$httpUri.Port)
     $content = Set-TomlSectionKeyValue $content 'mcp' 'sse_port' ([string]$sseUri.Port)
+    $content = Set-TomlSectionKeyValue $content 'agents.pi' 'command' '"pi"'
+    $content = Set-TomlSectionKeyValue $content 'agents.pi' 'cwd' '".."'
+    $content = Set-TomlSectionKeyValue $content 'agents.pi' 'color' '"#4f8cff"'
+    $content = Set-TomlSectionKeyValue $content 'agents.pi' 'label' '"Pi"'
 
     Write-TextUtf8NoBom -Path $path -Content $content
     Write-Good "Synced agentchattr config: $path"
@@ -46,6 +50,29 @@ function Sync-AgentchattrConfig {
 function Test-AgentchattrHealthy {
     $config = Get-StackConfig
     return (Test-HttpOk $config.urls.agentchattrUi) -and (Test-TcpPort '127.0.0.1' $config.ports.agentchattrMcpHttp)
+}
+
+function Stop-AgentchattrPortOwner {
+    $config = Get-StackConfig
+    try {
+        $targetPorts = @($config.ports.agentchattrUi, $config.ports.agentchattrMcpHttp, $config.ports.agentchattrMcpSse)
+        $connections = Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object { $targetPorts -contains $_.LocalPort }
+        $processIds = @($connections | Select-Object -ExpandProperty OwningProcess -Unique)
+        foreach ($procId in $processIds) {
+            if ($procId -and $procId -ne 0) {
+                try {
+                    Stop-Process -Id $procId -Force -ErrorAction Stop
+                    Write-Warn "Stopped untracked agentchattr listener process (PID $procId)"
+                }
+                catch {
+                    Write-Warn "Failed to stop untracked agentchattr listener PID $procId"
+                }
+            }
+        }
+    }
+    catch {
+        Write-Warn 'Could not inspect agentchattr listener ownership'
+    }
 }
 
 function Test-AgentchattrManagedProcessAlive {
@@ -95,10 +122,12 @@ function Start-Agentchattr {
     if (Test-AgentchattrHealthy) {
         if (Test-AgentchattrManagedProcessAlive) {
             Write-Info 'agentchattr already running and healthy; reusing existing managed process'
-        } else {
-            Write-Warn 'agentchattr already appears healthy but is not tracked by the harness; reusing existing instance'
+            return
         }
-        return
+
+        Write-Warn 'agentchattr already appears healthy but is not tracked by the harness; restarting it so config changes are applied'
+        Stop-AgentchattrPortOwner
+        Start-Sleep -Seconds 1
     }
 
     if (Test-AgentchattrManagedProcessAlive) {
@@ -120,6 +149,55 @@ function Start-Agentchattr {
     Write-Good "agentchattr MCP reachable at $($config.urls.agentchattrMcpHttp)"
 }
 
+function Start-PiAgentchattrWorker {
+    $config = Get-StackConfig
+    if (-not $config.projectPath) {
+        Write-Warn 'Skipping pi-agentchattr worker startup because no projectPath is configured'
+        return
+    }
+
+    $pythonExe = Resolve-ExecutablePath 'python'
+    if (-not $pythonExe) { throw 'python not found for pi-agentchattr worker' }
+
+    $script = Join-Path (Get-HarnessRoot) 'scripts/pi_agentchattr_worker.py'
+    if (-not (Test-Path $script)) { throw "pi-agentchattr worker script not found: $script" }
+
+    $healthy = Test-TcpPort '127.0.0.1' $config.ports.agentchattrUi
+    if (-not $healthy) { throw 'agentchattr must be running before starting the pi worker' }
+
+    $managedAlive = $false
+    $pidFile = Get-ManagedProcessIdPath 'pi-agentchattr-worker'
+    if (Test-Path $pidFile) {
+        try {
+            $metadata = Get-Content $pidFile -Raw | ConvertFrom-Json -ErrorAction Stop
+            $proc = Get-Process -Id ([int]$metadata.Pid) -ErrorAction Stop
+            $expected = if ($metadata.StartTimeUtc) { [datetime]::Parse($metadata.StartTimeUtc).ToUniversalTime() } else { $null }
+            if (-not $expected -or $proc.StartTime.ToUniversalTime() -eq $expected) { $managedAlive = $true }
+        }
+        catch { $managedAlive = $false }
+    }
+
+    if ($managedAlive) {
+        Write-Info 'pi-agentchattr worker already running; reusing existing managed process'
+        return
+    }
+
+    Start-BackgroundProcess -Name 'pi-agentchattr-worker' -FilePath $pythonExe -Arguments @(
+        $script,
+        '--base-url', $config.urls.agentchattrUi,
+        '--project-path', $config.projectPath,
+        '--label', 'Pi'
+    ) -WorkingDirectory (Get-HarnessRoot) | Out-Null
+
+    Start-Sleep -Seconds 2
+    Write-Good 'Started pi-agentchattr worker'
+}
+
+function Stop-PiAgentchattrWorker {
+    Stop-ManagedProcess 'pi-agentchattr-worker'
+}
+
 function Stop-Agentchattr {
     Stop-ManagedProcess 'agentchattr'
+    Stop-AgentchattrPortOwner
 }
