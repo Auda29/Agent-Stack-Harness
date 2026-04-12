@@ -53,7 +53,9 @@ if ($IncludeMultica) {
 Write-Section 'Ports (Pi-first core)'
 $portsToCheck = @(
     @{ Name='Postgres'; Port=$config.ports.postgres },
-    @{ Name='SearXNG'; Port=$config.ports.searxng }
+    @{ Name='SearXNG'; Port=$config.ports.searxng },
+    @{ Name='agentchattr UI'; Port=$config.ports.agentchattrUi },
+    @{ Name='agentchattr MCP HTTP'; Port=$config.ports.agentchattrMcpHttp }
 )
 if ($IncludeMultica) {
     $portsToCheck += @(
@@ -66,7 +68,7 @@ foreach ($pair in $portsToCheck) {
 }
 
 Write-Section 'HTTP health (Pi-first core)'
-$urlsToCheck = @($config.urls.searxng)
+$urlsToCheck = @($config.urls.searxng, $config.urls.agentchattrUi)
 if ($IncludeMultica) {
     $urlsToCheck += @($config.urls.multicaBackendHealth, $config.urls.multicaFrontend)
 }
@@ -93,7 +95,13 @@ if ($config.projectPath) {
     $projectAgents = Join-Path $config.projectPath 'AGENTS.md'
 
     if (Test-Path $projectSettings) { Write-Good 'Project .pi/settings.json exists' } else { Write-Warn 'Project .pi/settings.json missing' }
-    if (Test-Path $projectMcp) { Write-Good 'Project .pi/mcp.json exists' } else { Write-Warn 'Project .pi/mcp.json missing' }
+    if (Test-Path $projectMcp) {
+        Write-Good 'Project .pi/mcp.json exists'
+        $mcpContent = Get-Content $projectMcp -Raw
+        if ($mcpContent -match '"agentchattr"') { Write-Good 'Project .pi/mcp.json contains agentchattr MCP entry' } else { Write-Warn 'Project .pi/mcp.json missing agentchattr MCP entry' }
+    } else {
+        Write-Warn 'Project .pi/mcp.json missing'
+    }
     if (Test-Path $projectAgents) { Write-Good 'Project AGENTS.md exists' } else { Write-Warn 'Project AGENTS.md missing' }
 }
 

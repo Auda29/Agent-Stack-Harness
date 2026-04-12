@@ -18,10 +18,23 @@ function Install-Agentchattr {
 }
 
 function Start-Agentchattr {
+    $config = Get-StackConfig
     $winDir = Join-Path (Get-AgentchattrRepoPath) 'windows'
     $script = Join-Path $winDir 'start.bat'
     if (-not (Test-Path $script)) { throw "agentchattr launcher not found: $script" }
+
     Start-BackgroundProcess -Name 'agentchattr' -FilePath 'cmd.exe' -Arguments "/c `"$script`"" -WorkingDirectory $winDir | Out-Null
+
+    if (-not (Wait-HttpOk $config.urls.agentchattrUi 45 1000)) {
+        throw "agentchattr UI did not become reachable at $($config.urls.agentchattrUi)"
+    }
+
+    if (-not (Wait-TcpPort '127.0.0.1' $config.ports.agentchattrMcpHttp 20 500)) {
+        throw "agentchattr MCP HTTP port did not become reachable on $($config.ports.agentchattrMcpHttp)"
+    }
+
+    Write-Good "agentchattr UI reachable at $($config.urls.agentchattrUi)"
+    Write-Good "agentchattr MCP reachable at $($config.urls.agentchattrMcpHttp)"
 }
 
 function Stop-Agentchattr {

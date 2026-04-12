@@ -105,6 +105,7 @@ function Initialize-ProjectPiSettings([string]$ProjectPath) {
 function Initialize-ProjectMcpConfig([string]$ProjectPath) {
     if (-not $ProjectPath) { throw 'ProjectPath is required' }
 
+    $config = Get-StackConfig
     $resolvedProjectPath = (Resolve-Path $ProjectPath).Path
     $piDir = Join-Path $resolvedProjectPath '.pi'
     Ensure-Dir $piDir
@@ -121,14 +122,19 @@ function Initialize-ProjectMcpConfig([string]$ProjectPath) {
     }
 
     $pythonExe = Join-Path (Get-HarnessRoot) 'repos/mempalace/.venv/Scripts/python.exe'
-    $serverConfig = [pscustomobject]@{
+    $mempalaceConfig = [pscustomobject]@{
         command = $pythonExe
         args = @('-m', 'mempalace.mcp_server')
         lifecycle = 'eager'
         idleTimeout = 10
     }
+    $agentchattrConfig = [pscustomobject]@{
+        type = 'http'
+        url = $config.urls.agentchattrMcpHttp
+    }
 
-    $mcpConfig.mcpServers | Add-Member -NotePropertyName mempalace -NotePropertyValue $serverConfig -Force
+    $mcpConfig.mcpServers | Add-Member -NotePropertyName mempalace -NotePropertyValue $mempalaceConfig -Force
+    $mcpConfig.mcpServers | Add-Member -NotePropertyName agentchattr -NotePropertyValue $agentchattrConfig -Force
     $mcpConfig | ConvertTo-Json -Depth 8 | Set-Content -Path $path -Encoding UTF8
     Write-Good "Wrote project MCP config: $path"
 }
@@ -154,6 +160,8 @@ function Initialize-ProjectAgentsMd([string]$ProjectPath, [switch]$Force) {
     $content = $content.Replace('__MULTICA_FRONTEND_URL__', $config.urls.multicaFrontend)
     $content = $content.Replace('__MULTICA_BACKEND_HEALTH_URL__', $config.urls.multicaBackendHealth)
     $content = $content.Replace('__MULTICA_WS_URL__', $config.urls.multicaWebSocket)
+    $content = $content.Replace('__AGENTCHATTR_UI_URL__', $config.urls.agentchattrUi)
+    $content = $content.Replace('__AGENTCHATTR_MCP_HTTP_URL__', $config.urls.agentchattrMcpHttp)
 
     Set-Content -Path $target -Value $content -Encoding UTF8
     Write-Good "Wrote AGENTS.md: $target"
@@ -278,6 +286,17 @@ function Wait-TcpPort([string]$Address, [int]$Port, [int]$TimeoutSeconds = 30, [
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         if (Test-TcpPort $Address $Port) {
+            return $true
+        }
+        Start-Sleep -Milliseconds $PollMilliseconds
+    }
+    return $false
+}
+
+function Wait-HttpOk([string]$Url, [int]$TimeoutSeconds = 30, [int]$PollMilliseconds = 500) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-HttpOk $Url) {
             return $true
         }
         Start-Sleep -Milliseconds $PollMilliseconds

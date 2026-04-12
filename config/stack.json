@@ -5,13 +5,19 @@
                   "postgres":  5432,
                   "searxng":  8888,
                   "multicaBackend":  8080,
-                  "multicaFrontend":  3000
+                  "multicaFrontend":  3000,
+                  "agentchattrUi":  8300,
+                  "agentchattrMcpHttp":  8200,
+                  "agentchattrMcpSse":  8201
               },
     "urls":  {
                  "searxng":  "http://localhost:8888",
                  "multicaFrontend":  "http://localhost:3000",
                  "multicaBackendHealth":  "http://localhost:8080/health",
-                 "multicaWebSocket":  "ws://localhost:8080/ws"
+                 "multicaWebSocket":  "ws://localhost:8080/ws",
+                 "agentchattrUi":  "http://127.0.0.1:8300",
+                 "agentchattrMcpHttp":  "http://127.0.0.1:8200/mcp",
+                 "agentchattrMcpSse":  "http://127.0.0.1:8201/sse"
              },
     "repos":  {
                   "multica":  "https://github.com/multica-ai/multica.git",

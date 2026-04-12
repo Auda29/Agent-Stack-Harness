@@ -50,6 +50,8 @@ Default harness-managed endpoints:
 - Multica frontend: `__MULTICA_FRONTEND_URL__`
 - Multica backend health: `__MULTICA_BACKEND_HEALTH_URL__`
 - Multica websocket: `__MULTICA_WS_URL__`
+- agentchattr UI: `__AGENTCHATTR_UI_URL__`
+- agentchattr MCP HTTP: `__AGENTCHATTR_MCP_HTTP_URL__`
 
 ## How to use the stack
 
@@ -153,15 +155,15 @@ Multica is part of the local stack and may expose frontend/backend services. Bef
 
 ### agentchattr
 
-agentchattr is a local coordination/chat loop, not the primary target for harness-script-driven interaction.
+agentchattr is available as a local coordination/chat service.
 
-The harness may start or install agentchattr, but runtime coordination should happen through agentchattr itself rather than through harness wrappers.
+Prefer using the configured MCP server entry for agentchattr when coordination is needed. The harness scripts are for startup/admin only.
 
 Coordination guidance:
 
-- use the native agentchattr runtime/integration path when chat coordination is required
-- treat the harness scripts as startup/admin helpers for agentchattr, not as the main communication interface
-- if the environment already supports direct agent participation, prefer that over script wrappers
+- use agentchattr MCP tools such as `chat_read`, `chat_send`, `chat_rules`, and `chat_summary` when shared coordination is required
+- use agentchattr for collaboration/status-sharing, not for ordinary local code edits or shell work
+- if agentchattr MCP is unavailable, treat it as optional rather than assuming it is always usable
 
 ## Editing and automation rules
 
