@@ -36,6 +36,8 @@ if ($IncludeMultica) {
 }
 
 Write-Section 'Open URLs'
+Start-Process $config.urls.agentchattrUi
+Write-Good 'Opened agentchattr UI in browser'
 if ($IncludeMultica) {
     Start-Process $config.urls.multicaFrontend
     Write-Good 'Opened Multica frontend in browser'
